@@ -34,7 +34,7 @@ To build and run this OS, you will need:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/my-os.git
+   git clone https://github.com/alissonjsb4/Simple_OS.git
    ```
 
 2. Navigate to the project directory:
