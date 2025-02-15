@@ -18,9 +18,9 @@ start:
     mov bx, 0x1000
     mov ah, 0x02
     mov al, 4           ; 4 setores
-    mov ch, 0           ; Cylinder
-    mov cl, 2           ; Sector
-    mov dh, 0           ; Head
+    mov ch, 0           ; Cilindro
+    mov cl, 2           ; Setor inicial
+    mov dh, 0           ; Cabeça
     mov dl, 0x80        ; Drive
     int 0x13
     jc error
@@ -31,10 +31,9 @@ start:
 
     ; Carregar editor (setores 6-7)
     mov bx, 0x2000
-    mov ah, 0x02        ; Resetar AH
+    mov ah, 0x02
     mov al, 2           ; 2 setores
-    mov cl, 6           ; Sector inicial
-    ; CH e DH já estão corretos (0)
+    mov cl, 6           ; Setor inicial
     int 0x13
     jc error
 
