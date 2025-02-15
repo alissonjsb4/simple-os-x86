@@ -15,30 +15,8 @@ cli_loop:
     je reboot
     jmp cli_loop
 
-load_editor:
-    mov si, msg_editor
-    call print_string
-    jmp 0x2000
-
-reboot:
-    int 0x19
-
-wait_key:
-    mov ah, 0x00
-    int 0x16
-    ret
-
-print_string:
-    mov ah, 0x0E
-.print_loop:
-    lodsb
-    or al, al
-    jz .done
-    int 0x10
-    jmp .print_loop
-.done:
-    ret
+; ... (restante do código)
 
 msg_kernel db "Kernel carregado!", 0
 prompt db "> ", 0
-msg_editor db " Iniciando editor...", 0
+msg_editor db " Editor iniciado!", 0  ; Corrigi a vírgula faltando
