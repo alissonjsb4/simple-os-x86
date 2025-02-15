@@ -2,14 +2,12 @@
 [ORG 0x1000]
 
 start:
-    ; Configurar segmentos corretamente
     xor ax, ax
     mov ds, ax
     mov es, ax
     mov ss, ax
-    mov sp, 0x7C00      ; Stack abaixo do bootloader
+    mov sp, 0x7C00
 
-    ; Habilitar interrupções
     sti
 
     ; Limpar tela
@@ -42,20 +40,20 @@ cli_loop:
 load_editor:
     mov si, editor_msg
     call print_string
-    jmp 0x2000          ; Pular para o editor
+    jmp 0x0000:0x2000      ; Far jump para editor
 
 reboot:
     int 0x19
 
 wait_key:
-    mov ah, 0x00        ; Função de leitura de tecla
-    int 0x16            ; INT 16h AH=00h
+    mov ah, 0x00
+    int 0x16
     ret
 
 print_string:
-    mov ah, 0x0E        ; Função de imprimir caractere
+    mov ah, 0x0E
 .print_loop:
-    lodsb               ; Carrega próximo caractere
+    lodsb
     test al, al
     jz .done
     int 0x10
