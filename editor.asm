@@ -2,7 +2,7 @@
 [ORG 0x2000]
 
 start:
-    mov di, buffer      ; Inicializar buffer
+    mov di, buffer      ; Inicializar ponteiro do buffer
     mov si, editor_msg
     call print_string
 
@@ -12,7 +12,7 @@ editor_loop:
     je .backspace
     cmp al, 0x13        ; Ctrl+S
     je .save
-    cmp di, buffer+255  ; Limite do buffer
+    cmp di, buffer+255  ; Verificar limite do buffer
     je editor_loop
     stosb               ; Armazenar caractere
     call print_char
@@ -29,14 +29,14 @@ editor_loop:
     jmp editor_loop
 
 .save:
-    ; Salvar no setor 10
-    mov ah, 0x03
-    mov al, 1
-    mov ch, 0
-    mov cl, 10
-    mov dh, 0
-    mov dl, 0x80
-    mov bx, buffer
+    ; Salvar no setor 10 (LBA)
+    mov ah, 0x03        ; Função de escrita
+    mov al, 1           ; 1 setor
+    mov ch, 0           ; Cylinder
+    mov cl, 10          ; Setor
+    mov dh, 0           ; Head
+    mov dl, 0x80        ; Drive
+    mov bx, buffer      ; ES:BX = buffer
     int 0x13
     jc .error
     mov si, saved_msg
