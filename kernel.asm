@@ -2,46 +2,43 @@
 [ORG 0x1000]
 
 start:
-    ; Mensagem de inicialização do kernel
     mov si, msg_kernel
     call print_string
 
-    ; CLI básica
 cli_loop:
     mov si, prompt
     call print_string
-.wait_input:
-    mov ah, 0x00
-    int 0x16            ; Aguardar entrada do teclado
-    cmp al, 'e'         ; Comando 'e' para carregar o editor
+    call wait_key
+    cmp al, 'e'
     je load_editor
-    cmp al, 'r'         ; Comando 'r' para reiniciar
+    cmp al, 'r'
     je reboot
-    jmp .wait_input
+    jmp cli_loop
 
 load_editor:
-    ; Mensagem de carregamento do editor
-    mov si, msg_loading_editor
+    mov si, msg_editor
     call print_string
-
-    ; Pular para o editor (carregado em 0x2000)
     jmp 0x2000
 
 reboot:
-    ; Reiniciar o sistema
     int 0x19
+
+wait_key:
+    mov ah, 0x00
+    int 0x16
+    ret
 
 print_string:
     mov ah, 0x0E
-.print_char:
+.print_loop:
     lodsb
     or al, al
     jz .done
     int 0x10
-    jmp .print_char
+    jmp .print_loop
 .done:
     ret
 
-msg_kernel db "Kernel loaded.", 0
+msg_kernel db "Kernel carregado!", 0
 prompt db "> ", 0
-msg_loading_editor db "Loading editor...", 0
+msg_editor db " Iniciando editor...", 0
