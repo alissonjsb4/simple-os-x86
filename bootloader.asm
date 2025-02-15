@@ -17,6 +17,7 @@ start:
     mov ch, 0           ; Trilha 0
     mov cl, 2           ; Setor 2
     mov dh, 0           ; Cabeça 0
+    mov dl, 0x80        ; Drive (HD)
     int 0x13
     jc error
 
@@ -45,7 +46,7 @@ print_string:
 .done:
     ret
 
-msg_error db "Erro ao carregar!", 0
+msg_error db "Erro ao carregar setor!", 0
 
 times 510-($-$$) db 0
 dw 0xAA55
