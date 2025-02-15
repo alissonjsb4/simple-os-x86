@@ -19,7 +19,7 @@ check_size() {
 
 check_size bootloader.bin 512
 check_size kernel.bin 2048    # 4 setores
-check_size editor.bin 512
+check_size editor.bin 1024    # 2 setores
 
 # Criar disco
 dd if=/dev/zero of=disk.img bs=512 count=1000
@@ -28,4 +28,4 @@ dd if=kernel.bin of=disk.img seek=2 conv=notrunc
 dd if=editor.bin of=disk.img seek=6 conv=notrunc
 
 echo "✅ Build completo! Execute com:"
-echo "qemu-system-x86_64 -drive format=raw,file=disk.img"
+echo "qemu-system-x86_64 -drive format=raw,file=disk.img -d int,disk"
