@@ -2,19 +2,19 @@
 [ORG 0x2000]
 
 start:
-    mov di, buffer      ; Inicializa ponteiro
-    mov si, msg_editor
+    mov di, buffer      ; Inicializar buffer
+    mov si, editor_msg
     call print_string
 
 editor_loop:
     call get_char
-    cmp al, 0x08
+    cmp al, 0x08        ; Backspace
     je .backspace
-    cmp al, 0x13
+    cmp al, 0x13        ; Ctrl+S
     je .save
-    cmp di, buffer + 255
+    cmp di, buffer+255  ; Limite do buffer
     je editor_loop
-    stosb
+    stosb               ; Armazenar caractere
     call print_char
     jmp editor_loop
 
@@ -29,7 +29,7 @@ editor_loop:
     jmp editor_loop
 
 .save:
-    ; Escrever buffer no setor 10
+    ; Salvar no setor 10
     mov ah, 0x03
     mov al, 1
     mov ch, 0
@@ -38,12 +38,12 @@ editor_loop:
     mov dl, 0x80
     mov bx, buffer
     int 0x13
-    jc .save_error
-    mov si, msg_saved
+    jc .error
+    mov si, saved_msg
     jmp .exit
 
-.save_error:
-    mov si, msg_save_error
+.error:
+    mov si, error_msg
 
 .exit:
     call print_string
@@ -79,7 +79,8 @@ print_string:
 .done:
     ret
 
-msg_editor db "Editor (Backspace=apagar, Ctrl+S=salvar):", 13, 10, 0
-msg_saved db 13, 10, "Salvo no setor 10!", 13, 10, 0
-msg_save_error db 13, 10, "Erro ao salvar!", 13, 10, 0
+editor_msg  db "[4] Editor de texto:", 13, 10
+            db "Backspace: Apagar | Ctrl+S: Salvar", 13, 10, 0
+saved_msg   db 13, 10, "Texto salvo no setor 10!", 13, 10, 0
+error_msg   db 13, 10, "Erro ao salvar!", 13, 10, 0
 buffer times 256 db 0
