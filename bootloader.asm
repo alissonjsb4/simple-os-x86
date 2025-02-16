@@ -83,5 +83,4 @@ editor_msg  db "[3] Editor carregado (2 setores)!", 13, 10, 0
 msg_error   db "[ERRO] Disco/Setor invalido!", 0
 press_key_msg db "[!] Pressione qualquer tecla para iniciar...", 13, 10, 0 ; Nova mensagem
 
-times 510-($-$$) db 0
 dw 0xAA55
