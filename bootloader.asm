@@ -10,34 +10,34 @@ start:
     mov ss, ax
     mov sp, 0x7C00
 
-    ; Mensagem de debug inicial
+    ; Debug inicial
     mov si, boot_msg
     call print_string
 
     ; Carregar kernel (setores 2-5)
-    mov bx, 0x1000      ; Segmento de destino do kernel
-    mov ah, 0x02        ; Função BIOS: ler setor
-    mov al, 4           ; Ler 4 setores
+    mov bx, 0x1000
+    mov ah, 0x02
+    mov al, 4
     mov ch, 0
     mov cl, 2
     mov dh, 0
-    mov dl, 0x80        ; Disco principal
+    mov dl, 0x80
     int 0x13
     jc error
 
-    ; Mensagem de debug kernel
+    ; Debug kernel
     mov si, kernel_msg
     call print_string
 
     ; Carregar editor (setores 6-7)
-    mov bx, 0x2000      ; Segmento de destino do editor
-    mov ah, 0x02        ; Função BIOS: ler setor
-    mov al, 2           ; Ler 2 setores
+    mov bx, 0x2000
+    mov ah, 0x02
+    mov al, 2
     mov cl, 6
     int 0x13
     jc error
 
-    ; Mensagem de debug editor
+    ; Debug editor
     mov si, editor_msg
     call print_string
 
@@ -46,7 +46,7 @@ start:
     call print_string
     call wait_key
 
-    ; Pular para o kernel (início em 0x0000:0x1000)
+    ; Pular para o kernel
     jmp 0x0000:0x1000
 
 error:
@@ -72,12 +72,11 @@ wait_key:
     int 0x16
     ret
 
-boot_msg       db "[1] Bootloader OK!", 13, 10, 0
-kernel_msg     db "[2] Kernel carregado (4 setores)!", 13, 10, 0
-editor_msg     db "[3] Editor carregado (2 setores)!", 13, 10, 0
-msg_error      db "[ERRO] Falha na leitura do disco!", 0
-press_key_msg  db "[!] Pressione qualquer tecla para iniciar...", 13, 10, 0
+boot_msg    db "[1] Bootloader OK!", 13, 10, 0
+kernel_msg  db "[2] Kernel carregado (4 setores)!", 13, 10, 0
+editor_msg  db "[3] Editor carregado (2 setores)!", 13, 10, 0
+msg_error   db "[ERRO] Disco/Setor invalido!", 0
+press_key_msg db "[!] Pressione qualquer tecla para iniciar...", 13, 10, 0
 
-; Preenche até 512 bytes
 times 510-($-$$) db 0
 dw 0xAA55
