@@ -132,6 +132,3 @@ print_string:
 header db 0x0D,0x0A, " NanoEdit 1.0", 0x0D,0x0A, "Ctrl+S: Save | Backspace: Delete | Enter: New Line", 0x0D,0x0A, "--------------------------------------------------", 0x0D,0x0A, 0
 saved_msg db 0x0D,0x0A, "[SAVED] Text saved!", 0x0D,0x0A, 0
 buffer times 512 db 0
-
-; Preenche o restante até 1024 bytes (opcional)
-times 1024 - ($ - $$) db 0
