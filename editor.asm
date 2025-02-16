@@ -1,121 +1,98 @@
+; editor.asm
 [BITS 16]
 [ORG 0x2000]
 
 start:
-    mov ax, 0x0000
+    cli
+    cld
+    ; Assumindo que CS já contém o segmento correto, fazemos:
+    mov ax, cs
     mov ds, ax
     mov es, ax
-    mov di, buffer
-    
+
+    ; Inicializa o ponteiro do buffer para edição
+    lea di, [buffer]
+
+    ; Limpa a tela e exibe o cabeçalho
     call clear_screen
     call show_header
-    jmp editor_loop
-
-; ========== FUNÇÕES PRINCIPAIS ==========
-show_header:
-    mov si, header_top
-    call print_string
-    mov si, header_help
-    call print_string
-    mov si, header_line
-    call print_string
-    ret
 
 editor_loop:
-    call show_cursor
+    ; Espera pela entrada de um caractere (resultado em AL)
     call get_char
-    
-    cmp al, 0x08        ; Backspace
-    je .backspace
-    cmp al, 0x0D        ; Enter
-    je .newline
-    cmp al, 0x13        ; Ctrl+S
-    je .save
-    
-    ; Caracteres normais
-    cmp di, buffer_end
-    jae editor_loop
-    stosb
+
+    ; Verifica se foi pressionado Ctrl+S (0x13)
+    cmp al, 0x13
+    je do_save
+    ; Verifica Backspace (0x08)
+    cmp al, 0x08
+    je do_backspace
+    ; Verifica Enter (0x0D)
+    cmp al, 0x0D
+    je do_newline
+
+    ; Se o caractere for imprimível (>= 0x20), o processa
+    cmp al, 0x20
+    jb editor_loop  ; ignora outros controles
+
+    ; Armazena o caractere no buffer e exibe-o na tela
+    stosb         ; armazena AL em [DI] e incrementa DI
     call print_char
     jmp editor_loop
 
-.backspace:
-    cmp di, buffer
+do_backspace:
+    ; Se DI estiver no início do buffer, não faz nada
+    lea si, [buffer]
+    cmp di, si
     je editor_loop
-    dec di
-    call erase_char
+    dec di        ; retrocede o ponteiro do buffer
+    call backspace_cursor
     jmp editor_loop
 
-.newline:
+do_newline:
+    ; Imprime CR+LF na tela (sem armazenar no buffer)
     mov al, 0x0D
     call print_char
     mov al, 0x0A
     call print_char
     jmp editor_loop
 
-.save:
+do_save:
     call save_file
     jmp editor_loop
 
-; ========== FUNÇÕES DE TELA ==========
+; ========================= FUNÇÕES DE TELA =========================
+
 clear_screen:
+    ; Função BIOS 0x06 para rolagem (limpa a tela)
     mov ah, 0x06
-    xor al, al
-    mov bh, 0x07
-    mov cx, 0x0000
-    mov dx, 0x184F
+    xor al, al      ; número de linhas a rolar (0 = limpar toda a tela)
+    mov bh, 0x07    ; atributo padrão (branco em preto)
+    mov cx, 0x0000  ; canto superior esquerdo
+    mov dx, 0x184F  ; canto inferior direito (80 colunas x 25 linhas)
     int 0x10
-    
-    ; Reposicionar cursor no início
+
+    ; Reposiciona o cursor no canto superior esquerdo
     mov ah, 0x02
     xor bh, bh
     xor dx, dx
     int 0x10
     ret
 
-erase_char:
-    ; Mover cursor para trás
-    mov ah, 0x03
-    xor bh, bh
-    int 0x10
-    dec dl
-    mov ah, 0x02
-    int 0x10
-    
-    ; Escrever espaço
-    mov ah, 0x0A
-    mov al, ' '
-    mov bh, 0
-    mov cx, 1
-    int 0x10
+show_header:
+    mov si, header
+.header_loop:
+    lodsb
+    cmp al, 0
+    je .done_header
+    call print_char
+    jmp .header_loop
+.done_header:
     ret
 
-show_cursor:
-    mov ah, 0x02
-    xor bh, bh
-    int 0x10
-    ret
-
-; ========== FUNÇÕES DE DISCO ==========
-save_file:
-    ; ... (mesmo código anterior de salvamento)
-    ret
-
-; ========== FUNÇÕES BÁSICAS ==========
 print_char:
     mov ah, 0x0E
     int 0x10
-    ret
-
-print_string:
-    mov ah, 0x0E
-.loop:
-    lodsb
-    test al, al
-    jz .done
-    int 0x10
-    jmp .loop
-.done:
     ret
 
 get_char:
@@ -123,15 +100,38 @@ get_char:
     int 0x16
     ret
 
-; ========== DADOS ==========
-header_top   db 0x0D, 0x0A, " NanoEdit 1.0", 0x0D, 0x0A, 0
-header_help  db " Ctrl+S:Salvar | Backspace:Apagar | Enter:Nova linha", 0x0D, 0x0A, 0
-header_line  db "--------------------------------------------------", 0x0D, 0x0A, 0
+backspace_cursor:
+    ; Para simular o backspace: move o cursor para trás, escreve espaço e move novamente para trás
+    mov al, 0x08
+    call print_char   ; imprime o caractere de backspace
+    mov al, ' '
+    call print_char   ; sobrescreve com espaço
+    mov al, 0x08
+    call print_char   ; volta o cursor para a posição anterior
+    ret
 
-saved_msg    db 0x0D, 0x0A, "[SUCESSO] Texto salvo no setor 10!", 0x0D, 0x0A, 0
-error_msg    db 0x0D, 0x0A, "[ERRO] Falha ao salvar!", 0x0D, 0x0A, 0
+save_file:
+    ; Simulação de salvamento: apenas exibe uma mensagem
+    mov si, saved_msg
+    call print_string
+    ret
 
-buffer times 254 db 0
-buffer_end db 0
+print_string:
+    mov ah, 0x0E
+.str_loop:
+    lodsb
+    cmp al, 0
+    je .done_str
+    int 0x10
+    jmp .str_loop
+.done_str:
+    ret
 
-times 1024-($-$$) db 0
+; ========================= DADOS =========================
+
+header db 0x0D,0x0A, " NanoEdit 1.0", 0x0D,0x0A, "Ctrl+S: Save | Backspace: Delete | Enter: New Line", 0x0D,0x0A, "--------------------------------------------------", 0x0D,0x0A, 0
+saved_msg db 0x0D,0x0A, "[SAVED] Text saved!", 0x0D,0x0A, 0
+buffer times 512 db 0
+
+; Preenche o restante até 1024 bytes (opcional)
+times 1024 - ($ - $$) db 0
