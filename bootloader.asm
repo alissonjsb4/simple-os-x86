@@ -17,11 +17,11 @@ start:
     ; Carregar kernel (setores 2-5)
     mov bx, 0x1000
     mov ah, 0x02
-    mov al, 4           ; 4 setores
-    mov ch, 0           ; Cilindro
-    mov cl, 2           ; Setor inicial
-    mov dh, 0           ; Cabeça
-    mov dl, 0x80        ; Drive
+    mov al, 4
+    mov ch, 0
+    mov cl, 2
+    mov dh, 0
+    mov dl, 0x80
     int 0x13
     jc error
 
@@ -32,14 +32,21 @@ start:
     ; Carregar editor (setores 6-7)
     mov bx, 0x2000
     mov ah, 0x02
-    mov al, 2           ; 2 setores
-    mov cl, 6           ; Setor inicial
+    mov al, 2
+    mov cl, 6
     int 0x13
     jc error
 
     ; Debug editor
     mov si, editor_msg
     call print_string
+
+    ; ####################################
+    ; ALTERAÇÃO: Esperar confirmação do usuário
+    mov si, press_key_msg
+    call print_string
+    call wait_key    ; Nova função adicionada
+    ; ####################################
 
     ; Pular para o kernel
     jmp 0x0000:0x1000
@@ -62,10 +69,19 @@ print_string:
 .done:
     ret
 
+; ####################################
+; NOVA FUNÇÃO: Esperar tecla
+wait_key:
+    mov ah, 0x00
+    int 0x16
+    ret
+; ####################################
+
 boot_msg    db "[1] Bootloader OK!", 13, 10, 0
 kernel_msg  db "[2] Kernel carregado (4 setores)!", 13, 10, 0
 editor_msg  db "[3] Editor carregado (2 setores)!", 13, 10, 0
 msg_error   db "[ERRO] Disco/Setor invalido!", 0
+press_key_msg db "[!] Pressione qualquer tecla para iniciar...", 13, 10, 0 ; Nova mensagem
 
 times 510-($-$$) db 0
 dw 0xAA55
