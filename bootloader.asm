@@ -83,4 +83,5 @@ editor_msg  db "[3] Editor carregado (2 setores)!", 13, 10, 0
 msg_error   db "[ERRO] Disco/Setor invalido!", 0
 press_key_msg db "[!] Pressione qualquer tecla para iniciar...", 13, 10, 0 ; Nova mensagem
 
+times 510-($-$$) db 0  ; Preenche com zeros até o byte 510, é necessário para que o "0xAA55" esteja presente no fim do setor (bytes 511 e 512), identificando o setor como bootloader
 dw 0xAA55
