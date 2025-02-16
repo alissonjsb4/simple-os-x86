@@ -112,6 +112,7 @@ backspace_cursor:
 
 save_file:
     ; Simulação de salvamento: apenas exibe uma mensagem
+    call clear_screen
     mov si, saved_msg
     call print_string
     ret
