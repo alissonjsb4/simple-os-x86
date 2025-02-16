@@ -28,4 +28,4 @@ dd if=kernel.bin of=disk.img seek=2 conv=notrunc
 dd if=editor.bin of=disk.img seek=6 conv=notrunc
 
 echo "✅ Build completo! Execute com:"
-echo "qemu-system-x86_64 -drive format=raw,file=disk.img -d int,disk"
+echo "qemu-system-x86_64 -drive format=raw,file=disk.img"
