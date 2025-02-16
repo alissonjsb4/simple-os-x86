@@ -9,6 +9,9 @@ start:
     mov sp, 0x7C00
 
     call clear_screen
+    mov dh, 0
+    mov dl, 0
+    call set_cursor
 
     mov si, kernel_msg
     call print_string
@@ -40,6 +43,12 @@ clear_screen:
     mov bh, 0x07
     mov cx, 0x0000
     mov dx, 0x184F
+    int 0x10
+    ret
+
+set_cursor:
+    mov ah, 0x02
+    xor bh, bh
     int 0x10
     ret
 
