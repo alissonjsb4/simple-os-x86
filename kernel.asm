@@ -27,20 +27,24 @@ cli_loop:
     mov si, prompt
     call print_string
 
-    ; Esperar entrada
+    ; ####################################
+    ; ALTERAÇÃO: Validação rigorosa de entrada
     call wait_key
-
-    ; Processar comando
     cmp al, 'e'
     je load_editor
     cmp al, 'r'
     je reboot
+    
+    ; Se não for comando válido
+    mov si, invalid_msg
+    call print_string
     jmp cli_loop
+    ; ####################################
 
 load_editor:
     mov si, editor_msg
     call print_string
-    jmp 0x0000:0x2000      ; Far jump para editor
+    jmp 0x0000:0x2000
 
 reboot:
     int 0x19
@@ -64,3 +68,4 @@ print_string:
 kernel_msg db "[KERNEL] Sistema operacional carregado!", 13, 10, 0
 prompt     db 13, 10, "CMD> ", 0
 editor_msg db 13, 10, "Iniciando editor de texto...", 13, 10, 0
+invalid_msg db 13, 10, "Comando inválido! Use 'e' para editor ou 'r' para reiniciar", 13, 10, 0 ; Nova mensagem
