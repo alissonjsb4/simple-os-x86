@@ -2,12 +2,6 @@
 [ORG 0x1000]
 
 start:
-    xor ax, ax
-    mov ds, ax
-    mov es, ax
-    mov ss, ax
-    mov sp, 0x7C00
-
     sti
 
     ; Limpar tela
