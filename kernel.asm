@@ -10,7 +10,6 @@ start:
 
     sti
 
-    ; Limpar tela
     mov ah, 0x06
     xor al, al
     mov bh, 0x07
@@ -18,23 +17,19 @@ start:
     mov dx, 0x184F
     int 0x10
 
-    ; Mensagem inicial do kernel
     mov si, kernel_msg
     call print_string
 
 cli_loop:
-    ; Mostrar prompt
     mov si, prompt
     call print_string
 
-    ; Ler uma tecla
     call wait_key
     cmp al, 'e'
     je load_editor
     cmp al, 'r'
     je reboot
-
-    ; Se não for comando válido
+    
     mov si, invalid_msg
     call print_string
     jmp cli_loop
@@ -42,11 +37,9 @@ cli_loop:
 load_editor:
     mov si, editor_msg
     call print_string
-    ; Salta para o editor (início em 0x0000:0x2000)
     jmp 0x0000:0x2000
 
 reboot:
-    ; Reinicia o sistema
     int 0x19
 
 wait_key:
@@ -65,7 +58,7 @@ print_string:
 .done:
     ret
 
-kernel_msg  db "[KERNEL] Sistema operacional carregado!", 13, 10, 0
-prompt      db 13, 10, "CMD> ", 0
-editor_msg  db 13, 10, "Iniciando editor de texto...", 13, 10, 0
-invalid_msg db 13, 10, "Comando inválido! Use 'e' para editor ou 'r' para reiniciar.", 13, 10, 0
+kernel_msg db "[KERNEL] Sistema operacional carregado!", 13, 10, 0
+prompt     db 13, 10, "CMD> ", 0
+editor_msg db 13, 10, "Iniciando editor de texto...", 13, 10, 0
+invalid_msg db 13, 10, "Comando inválido! Use 'e' para editor ou 'r' para reiniciar", 13, 10, 0
