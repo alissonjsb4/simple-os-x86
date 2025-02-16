@@ -6,6 +6,18 @@ nasm -f bin -o bootloader.bin bootloader.asm
 nasm -f bin -o kernel.bin kernel.asm
 nasm -f bin -o editor.bin editor.asm
 
+# Função para printar o tamanho do arquivo
+print_size() {
+    file=$1
+    size=$(stat -c%s "$file")
+    echo "Tamanho de $file: $size bytes"
+}
+
+# Printar tamanhos
+print_size bootloader.bin
+print_size kernel.bin
+print_size editor.bin
+
 # Verificar tamanhos
 check_size() {
     file=$1
