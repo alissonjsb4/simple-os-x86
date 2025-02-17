@@ -1,31 +1,66 @@
 [BITS 16]
 [ORG 0x2000]
 
+;-----------------------------------------------------------
+; Editor de texto com:
+; - Cabeçalho no topo (linha 0)
+; - Área de edição a partir da linha 5
+; - Salvar real (Ctrl+S) que anexa o novo texto com separação
+;   e garante que o texto salvo termine com nova linha.
+; - Sair (Esc) voltando ao kernel
+;-----------------------------------------------------------
+
+; Define um endereço temporário para ler/escrever o setor salvo
+%define OLD_DATA_ADDR 0x3000
+
 start:
     xor ax, ax
     mov ds, ax
     mov es, ax
 
     call clear_screen
-    mov si, header
-    call print_header
-    
-    ; Posiciona cursor após o cabeçalho (linha 6)
-    mov dh, 6
+
+    ; Posiciona o cursor em 0,0 para imprimir o cabeçalho
+    mov dh, 0
     mov dl, 0
     call set_cursor
+
+    ; Imprime o cabeçalho (linha 0 a 3)
+    mov si, header
+    call print_string
+
+    ; Posiciona o cursor na linha 5, coluna 0 para iniciar a edição
+    mov dh, 5
+    mov dl, 0
+    call set_cursor
+
+    ; Inicializa o índice do buffer do editor
+    mov word [buffer_index], 0
 
 edit_loop:
     call wait_key
 
-    cmp al, 0x08    ; Backspace
-    je .backspace
-    cmp al, 0x0D    ; Enter
-    je .newline
-    cmp al, 0x13    ; Ctrl+S
-    je .save
+    ; Se pressionar ESC, sai para o kernel
+    cmp al, 0x1B       ; ESC
+    je exit_editor
 
-    ; Caractere normal
+    cmp al, 0x08       ; Backspace
+    je handle_backspace
+    cmp al, 0x0D       ; Enter
+    je handle_newline
+    cmp al, 0x13       ; Ctrl+S
+    je save_file
+
+    ; Caractere normal: armazena no buffer e imprime
+    mov bx, [buffer_index]
+    cmp bx, BUFFER_SIZE
+    jae skip_store        ; se excedeu o limite, ignora
+    mov di, bx
+    mov [buffer + di], al
+    inc bx
+    mov [buffer_index], bx
+
+skip_store:
     call print_char
     inc dl
     cmp dl, 80       ; Verifica fim da linha
@@ -35,86 +70,164 @@ edit_loop:
     cmp dh, 25       ; Verifica fim da tela
     jb .update
     dec dh
-
 .update:
     call set_cursor
     jmp edit_loop
 
-.backspace:
-    call handle_backspace
+;-----------------------------------------------------------
+; BACKSPACE
+;-----------------------------------------------------------
+handle_backspace:
+    mov bx, [buffer_index]
+    cmp bx, 0
+    je edit_loop          ; nada para apagar
+
+    dec bx
+    mov [buffer_index], bx
+
+    cmp dl, 0
+    jne .backspace_normal
+    ; Se coluna = 0, volta para a linha anterior, mas nunca acima da linha 5
+    cmp dh, 5
+    jle edit_loop
+    dec dh
+    mov dl, 79
+    jmp .backspace_normal
+
+.backspace_normal:
+    dec dl
+    call set_cursor
+    mov al, ' '
+    call print_char
+    call set_cursor
     jmp edit_loop
 
-.newline:
-    call handle_newline
+;-----------------------------------------------------------
+; ENTER (nova linha)
+;-----------------------------------------------------------
+handle_newline:
+    ; Armazena CR e LF no buffer (se couber)
+    mov bx, [buffer_index]
+    cmp bx, BUFFER_SIZE - 2
+    jae .skip_store_enter
+    mov di, bx
+    mov byte [buffer + di], 13
+    inc bx
+    mov di, bx
+    mov byte [buffer + di], 10
+    inc bx
+    mov [buffer_index], bx
+
+.skip_store_enter:
+    inc dh
+    cmp dh, 25
+    jb .ok_enter
+    dec dh
+.ok_enter:
+    xor dl, dl
+    call set_cursor
     jmp edit_loop
 
-.save:
+;-----------------------------------------------------------
+; SALVAR (Ctrl+S)
+;-----------------------------------------------------------
+save_file:
+    ; 1) Ler do disco o setor 8 (onde os textos são salvos)
+    mov ah, 0x02      ; Função: Ler setores
+    mov al, 1         ; Ler 1 setor
+    mov ch, 0
+    mov cl, 8         ; Setor 8 (exemplo)
+    mov dh, 0
+    mov dl, 0x80      ; Drive primário
+    mov bx, OLD_DATA_ADDR
+    int 0x13
+    jc save_error
+
+    ; 2) Encontrar o fim do conteúdo já salvo
+    mov cx, 512             ; Tamanho máximo do setor
+    mov di, OLD_DATA_ADDR
+find_end:
+    mov al, [di]
+    cmp al, 0
+    je found_end
+    cmp cx, 0
+    je found_end
+    inc di
+    dec cx
+    jmp find_end
+
+found_end:
+    ; 3) Se o setor não estiver vazio, insere CR+LF para separar os textos
+    cmp di, OLD_DATA_ADDR
+    je no_newline
+    mov byte [di], 13
+    inc di
+    mov byte [di], 10
+    inc di
+
+no_newline:
+    ; 4) Copiar o novo texto (do buffer) para o final do conteúdo lido
+    mov bx, [buffer_index]  ; Tamanho do novo texto digitado
+    mov si, buffer
+copy_loop:
+    cmp bx, 0
+    je done_copy
+    cmp di, OLD_DATA_ADDR + 511
+    jae done_copy
+    lodsb
+    mov [di], al
+    inc di
+    dec bx
+    jmp copy_loop
+
+done_copy:
+    ; 4.5) Verifica se o novo texto já termina com LF; se não, acrescenta CR+LF.
+    cmp di, OLD_DATA_ADDR
+    je append_done        ; se nada foi copiado, pula
+    mov al, [di-1]
+    cmp al, 10
+    je append_done
+    mov byte [di], 13
+    inc di
+    mov byte [di], 10
+    inc di
+append_done:
+    mov byte [di], 0
+
+    ; 5) Escrever o setor de volta no disco (setor 8)
+    mov ah, 0x03      ; Função: Escrever setores
+    mov al, 1         ; 1 setor
+    mov ch, 0
+    mov cl, 8
+    mov dh, 0
+    mov dl, 0x80
+    mov bx, OLD_DATA_ADDR
+    int 0x13
+    jc save_error
+
     mov si, saved_msg
     call print_string
     jmp edit_loop
 
-handle_backspace:
-    cmp dh, 6        ; Não permite apagar acima da linha 6
-    jb .exit
-    cmp dl, 0
-    jne .delete_char
+save_error:
+    mov si, error_msg
+    call print_string
+    jmp edit_loop
 
-    dec dh
-    mov dl, 79
-    jmp .update_pos
+;-----------------------------------------------------------
+; ESC (sair para o kernel)
+;-----------------------------------------------------------
+exit_editor:
+    jmp 0x0000:0x1000
 
-.delete_char:
-    dec dl
-
-.update_pos:
-    call set_cursor
-    mov al, ' '      ; Apaga o caractere
-    call print_char
-    call set_cursor
-
-.exit:
-    ret
-
-handle_newline:
-    inc dh
-    cmp dh, 25       ; Verifica limite inferior
-    jb .ok
-    dec dh
-.ok:
-    xor dl, dl       ; Coluna 0
-    call set_cursor
-    ret
-
+;-----------------------------------------------------------
+; Rotinas Auxiliares
+;-----------------------------------------------------------
 clear_screen:
     mov ax, 0x0600
     mov bh, 0x07
     mov cx, 0x0000
     mov dx, 0x184F
-    int 0x10
-    ret
-
-print_header:
-    mov cx, 0        ; Contador de linhas
-    mov dh, 0        ; Linha inicial
-.header_loop:
-    mov dl, 0
-    call set_cursor
-    call print_string
-    add si, 31       ; Avança para próxima linha (30 chars + CR+LF)
-    inc dh           ; Próxima linha
-    inc cx
-    cmp cx, 5        ; 5 linhas de cabeçalho
-    jb .header_loop
-    ret
-
-set_cursor:
-    mov ah, 0x02
-    xor bh, bh
-    int 0x10
-    ret
-
-print_char:
-    mov ah, 0x0E
     int 0x10
     ret
 
@@ -129,24 +242,41 @@ print_string:
 .done:
     ret
 
+set_cursor:
+    mov ah, 0x02
+    xor bh, bh
+    int 0x10
+    ret
+
 wait_key:
     mov ah, 0x00
     int 0x16
     ret
 
-; Cabeçalho com alinhamento garantido
+print_char:
+    mov ah, 0x0E
+    int 0x10
+    ret
+
+;-----------------------------------------------------------
+; Dados
+;-----------------------------------------------------------
 header:
-    db 13,10
     db "======== EDITOR DE TEXTO ========",13,10
     db " Ctrl+S: Salvar  Backspace: Apagar ",13,10
-    db " Enter: Nova linha  Alt+S: Sair ",13,10
-    db "---------------------------------",13,10
-    db 13,10,0
+    db " Enter: Nova linha  Esc: Voltar ao Kernel ",13,10
+    db "---------------------------------",0
 
 saved_msg:
     db 13,10,"[Texto salvo com sucesso!]",13,10,0
 
-; Buffer para garantir separação física
-times 512-($-header) db 0
+error_msg:
+    db 13,10,"[Erro ao salvar o arquivo!]",13,10,0
 
-times 1024-($-$$) db 0
+BUFFER_SIZE equ 1024
+
+buffer:
+    times BUFFER_SIZE db 0
+
+buffer_index:
+    dw 0
