@@ -1,4 +1,4 @@
-[BITS 16]
+ [BITS 16]
 [ORG 0x2000]
 
 ;-----------------------------------------------------------
@@ -220,8 +220,8 @@ append_done:
     call print_char
     mov si, newline_msg
     call print_string
-
-    jmp edit_loop
+    call wait_key
+    jmp exit_editor
 
 save_error:
     mov si, error_msg
