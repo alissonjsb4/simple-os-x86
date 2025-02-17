@@ -32,7 +32,7 @@ start:
     ; Carregar editor (LBA 6-7, CHS: C=0,H=0,S=7)
     mov bx, 0x2000
     mov ah, 0x02
-    mov al, 2
+    mov al, 3
     mov cl, 7
     int 0x13
     jc error
