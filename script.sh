@@ -31,10 +31,10 @@ check_size() {
 
 check_size bootloader.bin 512
 check_size kernel.bin 2048    # 4 setores
-check_size editor.bin 1024    # 2 setores
+check_size editor.bin 1536    # 3 setores
 
 # Criar disco
-dd if=/dev/zero of=disk.img bs=512 count=1000
+dd if=/dev/zero of=disk.img bs=512 count=100
 dd if=bootloader.bin of=disk.img conv=notrunc
 dd if=kernel.bin of=disk.img seek=2 conv=notrunc
 dd if=editor.bin of=disk.img seek=6 conv=notrunc
