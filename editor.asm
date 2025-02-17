@@ -290,7 +290,7 @@ error_msg:
 newline_msg:
     db 13,10,0
 
-BUFFER_SIZE equ 1024
+BUFFER_SIZE equ 512
 
 buffer:
     times BUFFER_SIZE db 0
