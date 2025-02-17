@@ -36,7 +36,7 @@ start:
     mov cl, 7
     int 0x13
     jc error
-    cmp al, 2
+    cmp al, 3
     jne error
 
     mov si, editor_msg
