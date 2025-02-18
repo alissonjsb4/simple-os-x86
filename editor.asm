@@ -136,40 +136,7 @@ handle_newline:
 save_file: 
     ; 0) Limpa o buffer da memória RAM que será usado para carregar o texto
     call clear_buffer
-
-    ; 1) Ler do disco o setor atual (10 + file_counter)
-    mov ah, 0x02      ; Função: Ler setores
-    mov al, 1         ; Ler 1 setor
-    mov ch, 0
-    mov cl, 10        ; Setor inicial (10)
-    add cl, [file_counter]  ; Adiciona o contador ao setor (10 + file_counter)
-    mov dh, 0
-    mov dl, 0x80      ; Drive primário
-    mov bx, OLD_DATA_ADDR
-    int 0x13
-    jc save_error
-
-    ; 2) Encontrar o fim do conteúdo já salvo
-    mov cx, 512             ; Tamanho máximo do setor
     mov di, OLD_DATA_ADDR
-find_end:
-    mov al, [di]
-    cmp al, 0
-    je found_end
-    cmp cx, 0
-    je found_end
-    inc di
-    dec cx
-    jmp find_end
-
-found_end:
-    ; 3) Se o setor não estiver vazio, insere CR+LF para separar os textos
-    cmp di, OLD_DATA_ADDR
-    je no_newline
-    mov byte [di], 13
-    inc di
-    mov byte [di], 10
-    inc di
 
 no_newline:
     ; 4) Copiar o novo texto (do buffer) para o final do conteúdo lido
@@ -178,7 +145,7 @@ no_newline:
 copy_loop:
     cmp bx, 0
     je done_copy
-    cmp di, OLD_DATA_ADDR + 511
+    cmp di, OLD_DATA_ADDR + 509
     jae done_copy
     lodsb
     mov [di], al
