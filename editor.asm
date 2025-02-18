@@ -231,9 +231,9 @@ append_done:
     ; Exibe mensagem de sucesso com o número do arquivo
     mov si, saved_msg
     call print_string
-    mov al, [file_counter]
-    add al, '0'  ; Converte o número para ASCII
-    call print_char
+    mov ax, [file_counter]
+    and ax, 0x00FF  ; Garante que o valor esteja em 8 bits
+    call print_two_digit
     mov si, newline_msg
     call print_string
     call wait_key
@@ -250,6 +250,33 @@ save_error:
 
 exit_editor:
     jmp 0x0000:0x1000
+
+;-------------------------------------------------------
+; Rotina para printar um número de 2 dígitos decimais (menores que 10 são printados com um '0' na frente)
+;-------------------------------------------------------
+print_two_digit:
+    push ax
+    push cx
+    push dx
+    mov cl, 10       ; divisor = 10
+    xor dx, dx       ; zera DX para divisão de 16 bits (dividend: DX:AX)
+    div cl           ; AX = número; divide por 10:
+                     ;   - quociente (dígito das dezenas) fica em AL
+                     ;   - resto (dígito das unidades) fica em AH
+    ; Imprime dígito das dezenas
+    add al, '0'
+    mov bh, ah
+    mov ah, 0x0E
+    int 0x10
+    ; Agora, o dígito das unidades está em AH
+    mov al, bh
+    add al, '0'
+    mov ah, 0x0E
+    int 0x10
+    pop dx
+    pop cx
+    pop ax
+    ret
 
 ;-----------------------------------------------------------
 ; Rotinas Auxiliares
