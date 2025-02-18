@@ -291,15 +291,16 @@ read_two_digits:
     ret
 
 convert_to_hex:
-    sub bl, '0'           ; Converte o primeiro dígito para número (em BL)
-    sub bh, '0'           ; Converte o segundo dígito para número (em BH)
-
-    ; Combina os dois dígitos em BL como um valor hexadecimal
-    mov al, bh            ; Move o segundo dígito para AL
-    shl al, 4             ; Desloca para a esquerda (multiplica por 16)
-    or bl, al             ; Combina BL e AL em BL (adiciona o primeiro dígito)
+    mov al, bl            ; Move a dezena decimal para AL
+    mov ah, 10            ; Define o multiplicador para converter decimal em hexadecimal
+    mul ah                ; AL = AL * 10 (multiplica a dezena por 10)
+    add al, bh            ; Soma a unidade decimal
+    sub al, 10h           
+    mov bl, al            ; Armazena o resultado em BL
+    call print_char
 
     ret
+
 
 disk_error:
     mov si, disk_error_msg
