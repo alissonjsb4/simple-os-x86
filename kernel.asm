@@ -99,11 +99,11 @@ read_loop:
     ; 0) Limpa o buffer da memória RAM que será usado para carregar o texto
     call clear_buffer
 
-    ; 4) Ler o setor (número em BL) para o buffer temporário em 0x5000
+    ; 4) Ler o setor (número em BL) para o buffer temporário em 0x3000
     mov ah, 0x02         ; Função: Ler setores
     mov al, 1            ; Ler 1 setor
     mov ch, 0
-    mov cl, bl         ; Setor a ser lido (assume BL < 256)
+    mov cl, [sector_number]         ; Setor a ser lido (assume BL < 256)
     mov dh, 0
     mov dl, 0x80
     mov bx, 0x3000       ; Buffer temporário para o arquivo
@@ -123,11 +123,51 @@ print_six:
     mov si, newline_msg
     call print_string
 
-    inc bl               ; Próximo setor (arquivo seguinte)
-    inc di               ; Incrementa índice do arquivo
+    inc byte [sector_number]               ; Próximo setor (arquivo seguinte)
+    inc di                                 ; Incrementa índice do arquivo
     jmp read_loop
 
 done_read:
+    call clear_buffer               ; Limpa o buffer, higiene, né?
+    cmp byte [sector_number], 10    ; Verifica se existem ou não arquivos salvos.
+    je main_loop                    ; Se não, volta ao loop.
+
+    mov al, 10                      ; Já vimos que existem arquivos, vamos então
+    mov [sector_number], al         ; limpar o contador para a próxima execução
+
+    mov si, view_msg                ; Se sim, vai pedir para você escolher qual quer ver
+    call print_string
+    call read_two_digits            ; Vai permitir que você digite o valor 
+
+    cmp bl, 0 
+    je  retorno_main
+    mov ax, di
+    cmp al, bl                      ; O valor supera o número de arquivos salvos?
+    jl  invalid_sector1
+    cmp bl, 1                       ; O valor é menor que 01?
+    jl  invalid_sector2
+
+    call read_and_print_sector
+
+    jmp main_loop
+
+invalid_sector1:
+    mov si, invalid_sector_msg
+    call print_string
+    jmp done_read
+invalid_sector2:
+   mov si, invalid_sector_msg2
+   call print_string
+   jmp done_read
+
+
+retorno_main:
+    call clear_screen
+    mov dh, 0
+    mov dl, 0
+    call set_cursor
+    mov si, kernel_msg
+    call print_string
     jmp main_loop
 
 ;-------------------------------------------------------
@@ -156,6 +196,43 @@ print_two_digit:
     pop cx
     pop ax
     ret
+
+;-------------------------------------------------------
+; Rotina para ler um setor do disco e imprimir todo o seu conteúdo.
+;-------------------------------------------------------
+read_and_print_sector:
+    push ax
+    push bx
+    push cx
+    push dx
+    push es
+
+    ; Lê o setor
+    mov ah, 0x02         ; Função: Ler setores do disco
+    mov al, 1            ; Número de setores a ler (1 setor)
+    mov cl, bl           ; Busca o setor selecionado pelo usuário
+    mov dh, 0
+    mov dl, 0x80
+    mov bx, 0x3000       ; Buffer temporário para o arquivo
+    int 0x13
+    jc disk_error
+
+    ; Imprimir o conteúdo do setor
+    mov cx, 512          ; O setor tem 512 bytes
+    mov si, 0x3000       ; Endereço do buffer de dados lidos
+
+print_loop:
+    lodsb                ; Carrega o byte em AL
+    mov ah, 0x0E         ; Função de impressão no modo texto
+    int 0x10             ; Chama a interrupção de vídeo para imprimir
+    loop print_loop      ; Repete até imprimir todos os 512 bytes
+
+    pop es
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret                  ; Retorna para o chamador
 
 ;-------------------------------------------------------
 ; Reiniciar
@@ -196,6 +273,34 @@ wait_key:
     int 0x16
     ret
 
+print_char:
+    mov ah, 0x0E        ; Função de teletipo (imprimir caractere na tela)
+    int 0x10            ; Chama a interrupção BIOS para imprimir o caractere em AL
+    ret
+
+read_two_digits:
+    call wait_key          ; Chama wait_key para pegar o primeiro dígito
+    call print_char
+    mov bl, al             ; Armazena o primeiro dígito em BL (pode ser qualquer registrador)
+
+    call wait_key          ; Chama wait_key para pegar o segundo dígito
+    call print_char
+    mov bh, al             ; Armazena o segundo dígito em BH
+
+    call convert_to_hex
+    ret
+
+convert_to_hex:
+    sub bl, '0'           ; Converte o primeiro dígito para número (em BL)
+    sub bh, '0'           ; Converte o segundo dígito para número (em BH)
+
+    ; Combina os dois dígitos em BL como um valor hexadecimal
+    mov al, bh            ; Move o segundo dígito para AL
+    shl al, 4             ; Desloca para a esquerda (multiplica por 16)
+    or bl, al             ; Combina BL e AL em BL (adiciona o primeiro dígito)
+
+    ret
+
 disk_error:
     mov si, disk_error_msg
     call print_string
@@ -203,7 +308,7 @@ disk_error:
 
 clear_buffer:
     mov si, 0x3000          ; Endereço do buffer na memória RAM (0x3000)
-    mov cx, 512             ; Tamanho do buffer (512 bytes, ou ajuste conforme necessário)
+    mov cx, 512             ; Tamanho do buffer (512 bytes)
 clear_loop:
     mov byte [si], 0        ; Zera o byte atual
     inc si                  ; Avança para o próximo byte
@@ -219,14 +324,17 @@ editor_msg     db "Iniciando editor...", 13,10,0
 invalid_msg    db "Comando invalido!", 13,10,0
 disk_error_msg db "Erro de leitura do disco!", 13,10,0
 
-view_header    db "Arquivos salvos:", 13,10,0
-open_bracket   db "[",0
+view_header         db "Arquivos salvos:", 13,10,0
+view_msg            db "Valor do arq. que queres abrir ('00' para retornar):", 0
+invalid_sector_msg  db "Arquivo nao existente!1", 13, 10, 0
+invalid_sector_msg2  db "Arquivo nao existente!2", 13, 10, 0
+open_bracket        db "[",0
 close_bracket_space db "] ",0
-newline_msg    db 13,10,0
+newline_msg         db 13,10,0
 
 file_count     dw 0              ; Variável para armazenar o contador de arquivos
+sector_number db 10              ; Variável para armazenar o setor analisado atualmente
 ; Buffer para ler o setor que contém o file_count (setor 9)
 file_count_buffer  times 512 db 0
-
 ; Preenche até 2048 bytes (4 setores)
 times 2048-($-$$) db 0
