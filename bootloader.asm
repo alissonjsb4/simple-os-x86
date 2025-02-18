@@ -13,7 +13,7 @@ start:
     mov si, boot_msg
     call print_string
 
-    ; Carregar kernel (LBA 2-5, CHS: C=0,H=0,S=3)
+    ; Carregar kernel (LBA 3-6, CHS: C=0,H=0,S=3)
     mov bx, 0x1000
     mov ah, 0x02
     mov al, 4
@@ -29,7 +29,7 @@ start:
     mov si, kernel_msg
     call print_string
 
-    ; Carregar editor (LBA 6-7, CHS: C=0,H=0,S=7)
+    ; Carregar editor (LBA 7-9, CHS: C=0,H=0,S=7)
     mov bx, 0x2000
     mov ah, 0x02
     mov al, 3
