@@ -143,23 +143,22 @@ done_read:
     je  retorno_main
     mov ax, di
     cmp al, bl                      ; O valor supera o número de arquivos salvos?
-    jl  invalid_sector1
+    jl  invalid_sector
     cmp bl, 1                       ; O valor é menor que 01?
-    jl  invalid_sector2
+    jl  invalid_sector
 
+    call clear_screen
+    mov dh, 0
+    mov dl, 0
+    call set_cursor    
     call read_and_print_sector
 
     jmp main_loop
 
-invalid_sector1:
+invalid_sector:
     mov si, invalid_sector_msg
     call print_string
     jmp done_read
-invalid_sector2:
-   mov si, invalid_sector_msg2
-   call print_string
-   jmp done_read
-
 
 retorno_main:
     call clear_screen
@@ -210,7 +209,8 @@ read_and_print_sector:
     ; Lê o setor
     mov ah, 0x02         ; Função: Ler setores do disco
     mov al, 1            ; Número de setores a ler (1 setor)
-    mov cl, bl           ; Busca o setor selecionado pelo usuário
+    mov cl, 9            ; "Inicialiaza" a busca pelo setor certo no setor 9
+    add cl, bl           ; Busca o setor selecionado pelo usuário (9 + bl)
     mov dh, 0
     mov dl, 0x80
     mov bx, 0x3000       ; Buffer temporário para o arquivo
@@ -227,12 +227,19 @@ print_loop:
     int 0x10             ; Chama a interrupção de vídeo para imprimir
     loop print_loop      ; Repete até imprimir todos os 512 bytes
 
+    call wait_key
     pop es
     pop dx
     pop cx
     pop bx
     pop ax
-    ret                  ; Retorna para o chamador
+    call clear_screen
+    mov dh, 0
+    mov dl, 0
+    call set_cursor
+    mov si, kernel_msg
+    call print_string
+    jmp main_loop
 
 ;-------------------------------------------------------
 ; Reiniciar
@@ -297,7 +304,6 @@ convert_to_hex:
     add al, bh            ; Soma a unidade decimal
     sub al, 10h           
     mov bl, al            ; Armazena o resultado em BL
-    call print_char
 
     ret
 
@@ -327,8 +333,7 @@ disk_error_msg db "Erro de leitura do disco!", 13,10,0
 
 view_header         db "Arquivos salvos:", 13,10,0
 view_msg            db "Valor do arq. que queres abrir ('00' para retornar):", 0
-invalid_sector_msg  db "Arquivo nao existente!1", 13, 10, 0
-invalid_sector_msg2  db "Arquivo nao existente!2", 13, 10, 0
+invalid_sector_msg  db "Arquivo nao existente!", 13, 10, 0
 open_bracket        db "[",0
 close_bracket_space db "] ",0
 newline_msg         db 13,10,0
