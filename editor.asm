@@ -10,8 +10,8 @@
 ; - Sair (Esc) voltando ao kernel
 ;-----------------------------------------------------------
 
-; Define um endereço temporário para ler/escrever o setor salvo
-%define OLD_DATA_ADDR 0x3000
+%define FILE_COUNTER_SECTOR 0x09  ; Setor onde o contador de arquivos será armazenado (setor 9)
+%define OLD_DATA_ADDR 0x3000     ; Endereço temporário para ler/escrever o setor salvo
 
 start:
     xor ax, ax
@@ -19,7 +19,7 @@ start:
     mov es, ax
 
     ; Inicializa o contador de arquivos
-    mov byte [file_counter], 0
+    call load_file_counter
 
     call clear_screen
 
@@ -133,13 +133,16 @@ handle_newline:
 ;-----------------------------------------------------------
 ; SALVAR (Ctrl+S)
 ;-----------------------------------------------------------
-save_file:
-    ; 1) Ler do disco o setor atual (8 + file_counter)
+save_file: 
+    ; 0) Limpa o buffer da memória RAM que será usado para carregar o texto
+    call clear_buffer
+
+    ; 1) Ler do disco o setor atual (10 + file_counter)
     mov ah, 0x02      ; Função: Ler setores
     mov al, 1         ; Ler 1 setor
     mov ch, 0
-    mov cl, 8         ; Setor inicial (8)
-    add cl, [file_counter]  ; Adiciona o contador ao setor
+    mov cl, 10        ; Setor inicial (10)
+    add cl, [file_counter]  ; Adiciona o contador ao setor (10 + file_counter)
     mov dh, 0
     mov dl, 0x80      ; Drive primário
     mov bx, OLD_DATA_ADDR
@@ -201,8 +204,8 @@ append_done:
     mov ah, 0x03      ; Função: Escrever setores
     mov al, 1         ; 1 setor
     mov ch, 0
-    mov cl, 8         ; Setor inicial (8)
-    add cl, [file_counter]  ; Adiciona o contador ao setor
+    mov cl, 10        ; Setor inicial (10)
+    add cl, [file_counter]  ; Adiciona o contador ao setor (10 + file_counter)
     mov dh, 0
     mov dl, 0x80
     mov bx, OLD_DATA_ADDR
@@ -211,6 +214,19 @@ append_done:
 
     ; 6) Incrementar o contador de arquivos
     inc byte [file_counter]
+
+    ; 7) Salvar o file_counter de volta no setor 9
+    mov ah, 0x03      ; Função: Escrever setores
+    mov ch, 0
+    mov cl, FILE_COUNTER_SECTOR   ; Setor 9 onde o file_counter será armazenado
+    mov dh, 0
+    mov dl, 0x80
+    mov bx, OLD_DATA_ADDR
+    mov al, [file_counter]       ; Carrega o valor de file_counter em AL
+    mov [OLD_DATA_ADDR], al      ; Salva o valor de AL em OLD_DATA_ADDR
+    mov al, 1         ; 1 setor
+    int 0x13
+    jc save_error
 
     ; Exibe mensagem de sucesso com o número do arquivo
     mov si, saved_msg
@@ -231,12 +247,14 @@ save_error:
 ;-----------------------------------------------------------
 ; ESC (sair para o kernel)
 ;-----------------------------------------------------------
+
 exit_editor:
     jmp 0x0000:0x1000
 
 ;-----------------------------------------------------------
 ; Rotinas Auxiliares
 ;-----------------------------------------------------------
+
 clear_screen:
     mov ax, 0x0600
     mov bh, 0x07
@@ -272,9 +290,39 @@ print_char:
     int 0x10
     ret
 
+load_file_counter:
+    mov ah, 0x02          ; Função: Ler setores
+    mov al, 1             ; Ler 1 setor
+    mov ch, 0
+    mov cl, FILE_COUNTER_SECTOR  ; Setor 9
+    mov dh, 0
+    mov dl, 0x80         ; Drive primário
+    mov bx, OLD_DATA_ADDR ; Endereço temporário
+    int 0x13
+    jc init_file_counter  ; Se falhar, inicializa com 0
+
+    ; Supondo que o contador esteja armazenado no primeiro byte do setor
+    mov al, [OLD_DATA_ADDR]
+    mov [file_counter], al
+    ret
+
+init_file_counter:
+    mov byte [file_counter], 0
+    ret
+
+clear_buffer:
+    mov si, 0x3000          ; Endereço do buffer na memória RAM (0x3000)
+    mov cx, BUFFER_SIZE     ; Tamanho do buffer (512 bytes, ou ajuste conforme necessário)
+clear_loop:
+    mov byte [si], 0        ; Zera o byte atual
+    inc si                  ; Avança para o próximo byte
+    loop clear_loop         ; Repete até limpar todos os bytes
+    ret
+
 ;-----------------------------------------------------------
 ; Dados
 ;-----------------------------------------------------------
+
 header:
     db "======== EDITOR DE TEXTO ========",13,10
     db " Ctrl+S: Salvar  Backspace: Apagar ",13,10
@@ -285,7 +333,7 @@ saved_msg:
     db 13,10,"[Texto salvo com sucesso! Arquivo ",0
 
 error_msg:
-    db 13,10,"[Erro ao salvar o arquivo!]",13,10,0
+    db 13,10,"[Erro ao salvar o arquivo!]",0
 
 newline_msg:
     db 13,10,0
