@@ -10,7 +10,7 @@ O **Simple OS** é um projeto desenvolvido no âmbito da disciplina de Microproc
 - **Nataniel Marques Viana Neto**
 - **Thiago Siqueira de Sousa**
 
-##  🎯 Objetivo
+## Objetivo
 
 O objetivo do **Simple OS** é demonstrar os conceitos fundamentais de um sistema operacional simples, implementado inteiramente em **Assembly** para a arquitetura **x86** no modo real de 16 bits. O sistema é composto por:
 
@@ -20,7 +20,7 @@ O objetivo do **Simple OS** é demonstrar os conceitos fundamentais de um sistem
 
 O projeto ilustra a interação direta com o hardware por meio das **interrupções do BIOS**, servindo como uma ferramenta educacional para o estudo de sistemas operacionais e programação de baixo nível.
 
-## 📑 Sumário
+## Sumário
 
 - [:information_source: Visão Geral](#visão-geral)
 - [:package: Arquitetura e Componentes](#arquitetura-e-componentes)
@@ -37,7 +37,7 @@ O projeto ilustra a interação direta com o hardware por meio das **interrupç�
 
 ---
 
-## :information_source: Visão Geral
+## Visão Geral
 
 O projeto **Simple OS** tem como objetivo demonstrar o funcionamento básico de um sistema operacional. Por meio deste sistema, o usuário pode:
 
@@ -49,7 +49,7 @@ Esta implementação é ideal para estudantes, pesquisadores e entusiastas que d
 
 ---
 
-## :package: Arquitetura e Componentes
+## Arquitetura e Componentes
 
 ### Bootloader
 
@@ -109,7 +109,7 @@ Esta implementação é ideal para estudantes, pesquisadores e entusiastas que d
 
 ---
 
-## :gear: Detalhes Técnicos
+## Detalhes Técnicos
 
 - **Modo Real de 16 bits**:  
   Toda a execução ocorre no modo real, utilizando as restrições e capacidades dos registradores de 16 bits.
@@ -131,7 +131,7 @@ Esta implementação é ideal para estudantes, pesquisadores e entusiastas que d
 
 ---
 
-## :clipboard: Requisitos
+## Requisitos
 
 - **NASM**: Utilizado para compilar os arquivos Assembly.
 - **Bash**: Necessário para executar o script de build.
@@ -140,7 +140,7 @@ Esta implementação é ideal para estudantes, pesquisadores e entusiastas que d
 
 ---
 
-## :rocket: Instruções de Build e Execução
+## Instruções de Build e Execução
 
 ### Compilação e Criação da Imagem
 
@@ -174,7 +174,7 @@ Esta instrução iniciará a emulação, permitindo que você teste e interaja c
 
 ---
 
-## 🛠 Estrutura Técnica
+## Estrutura Técnica
 
 ### Layout do Disco
 | Setor | Conteúdo               | Tamanho      | Endereço Memória |
@@ -187,7 +187,7 @@ Esta instrução iniciará a emulação, permitindo que você teste e interaja c
 
 ---
 
-## ⚠️ Limitações e Melhorias Futuras
+## Limitações e Melhorias Futuras
 
 ### Tratamento de Erros
 - O tratamento atual de erros é básico. Futuras versões poderão incluir mecanismos mais robustos para lidar com falhas de leitura e escrita no disco, bem como notificações mais detalhadas ao usuário.
@@ -204,7 +204,7 @@ Esta instrução iniciará a emulação, permitindo que você teste e interaja c
 
 ---
 
-## 🤝 Contribuições
+## Contribuições
 
 Contribuições para o projeto são muito bem-vindas. Para contribuir:
 
@@ -214,7 +214,7 @@ Contribuições para o projeto são muito bem-vindas. Para contribuir:
 
 ---
 
-## 📄 Licença
+## Licença
 
 Este projeto está licenciado sob a [MIT License](LICENSE). Sinta-se à vontade para utilizar, modificar e distribuir o código conforme os termos desta licença.
 
