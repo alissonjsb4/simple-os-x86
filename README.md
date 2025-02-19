@@ -12,7 +12,7 @@ O **Simple OS** é um projeto desenvolvido no âmbito da disciplina de Microproc
 
 ## Objetivo
 
-O objetivo do **Simple OS** é demonstrar os conceitos fundamentais de um sistema operacional simples, implementado inteiramente em **Assembly** para a arquitetura **x86** no modo real de 16 bits. O sistema é composto por:
+O objetivo do **Simple OS** é demonstrar os conceitos fundamentais de um sistema operacional (SO) simples, implementado inteiramente em **Assembly** para a arquitetura **x86** no modo real de 16 bits. O sistema é composto por:
 
 - **Bootloader**: Responsável pela inicialização do sistema.
 - **Kernel**: Fornece um prompt de comando interativo.
@@ -55,15 +55,17 @@ Esta implementação é ideal para estudantes, pesquisadores e entusiastas que d
 ### Bootloader
 
 - **Localização e Função**:  
-  - Reside no primeiro setor do disco (512 bytes).
-  - É o primeiro código executado pelo sistema.
+  - O bootloader está armazenado no disco rígido, quando o PC é ligado, a BIOS assume o controle primeiro. Ela      procura um disco de boot (dispositivo de armazenamento que contém um sistema operacional ou pelo menos um 
+    bootloader como HD, SSD, pendrive, etc), ao encontrar ele, a BIOS vai ler o primeiro disco do setor (512 
+    bytes), onde reside o bootloader, e vai executar seu código que é o primeiro executado pelo sistema. O   
+    bootloader então carrega o sistema operacional na memória RAM  e transfere o controle para ele.
 - **Responsabilidades**:
   - Desabilitar interrupções e configurar os registradores iniciais.
   - Carregar o kernel e o editor de texto a partir de setores específicos do disco.
   - Exibir mensagens de status e tratar erros de leitura de disco.
 - **Técnicas Utilizadas**:
   - Uso de interrupções do BIOS, como `int 0x13` para operações de disco e `int 0x10` para saída de vídeo.
-  - Definição da posição do código com a diretiva `[ORG 0x7C00]`.
+  - Definição da posição do código com a diretiva `[ORG 0x7C00]`. É um padrão definido pelos fabricantes de PCs.
 
 ### Kernel
 
