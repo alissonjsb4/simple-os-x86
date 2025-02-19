@@ -110,14 +110,14 @@ read_loop:
     int 0x13
     jc disk_error
 
-    ; 5) Imprimir os 6 primeiros bytes do arquivo
-    mov cx, 6            ; Quantidade de bytes a imprimir
+    ; 5) Imprimir os 10 primeiros bytes do arquivo
+    mov cx, 10            ; Quantidade de bytes a imprimir
     mov si, 0x3000       ; Início do buffer
-print_six:
+print_ten:
     lodsb
     mov ah, 0x0E
     int 0x10
-    loop print_six
+    loop print_ten
 
     ; Imprime nova linha
     mov si, newline_msg
