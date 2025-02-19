@@ -31,6 +31,7 @@ O projeto ilustra a interação direta com o hardware por meio das **interrupç�
 - [:gear: Detalhes Técnicos](#detalhes-técnicos)
 - [:clipboard: Requisitos](#requisitos)
 - [:rocket: Instruções de Build e Execução](#instruções-de-build-e-execução)
+- [:hammer_and_wrench: Estrutura Técnica](#estrutura-técnica)
 - [:warning: Limitações e Melhorias Futuras](#limitações-e-melhorias-futuras)
 - [:handshake: Contribuições](#contribuições)
 - [:scroll: Licença](#licença)
