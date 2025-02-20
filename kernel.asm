@@ -142,9 +142,6 @@ delete_text:
     ; 2) Extrair o contador do primeiro byte do buffer
     mov al, [file_count_buffer]  ; Supõe que o contador está no primeiro byte
     mov [file_count], ax         ; Armazena em file_count (word)
-    mov al, [file_count]
-    add al, '0'
-    call print_char
 
     ; Exibe um cabeçalho
     mov si, view_header
