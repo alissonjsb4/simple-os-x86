@@ -1,58 +1,59 @@
 [BITS 16]
-[ORG 0x1000]
+[ORG 0x7C00]
 
 start:
+    cli
+    cld
     xor ax, ax
     mov ds, ax
     mov es, ax
     mov ss, ax
     mov sp, 0x7C00
 
-    sti
+    mov si, boot_msg
+    call print_string
 
-    ; Limpar tela
-    mov ah, 0x06
-    xor al, al
-    mov bh, 0x07
-    mov cx, 0x0000
-    mov dx, 0x184F
-    int 0x10
+    ; Carregar kernel (LBA 3-6, CHS: C=0,H=0,S=3)
+    mov bx, 0x1000
+    mov ah, 0x02
+    mov al, 4
+    mov ch, 0
+    mov cl, 3
+    mov dh, 0
+    mov dl, 0x80
+    int 0x13
+    jc error
+    cmp al, 4
+    jne error
 
-    ; Mensagem inicial
     mov si, kernel_msg
     call print_string
 
-cli_loop:
-    ; Mostrar prompt
-    mov si, prompt
-    call print_string
+    ; Carregar editor (LBA 7-9, CHS: C=0,H=0,S=7)
+    mov bx, 0x2000
+    mov ah, 0x02
+    mov al, 3
+    mov cl, 7
+    int 0x13
+    jc error
+    cmp al, 3
+    jne error
 
-    ; ####################################
-    ; ALTERAÇÃO: Validação rigorosa de entrada
-    call wait_key
-    cmp al, 'e'
-    je load_editor
-    cmp al, 'r'
-    je reboot
-    
-    ; Se não for comando válido
-    mov si, invalid_msg
-    call print_string
-    jmp cli_loop
-    ; ####################################
-
-load_editor:
     mov si, editor_msg
     call print_string
-    jmp 0x0000:0x2000
 
-reboot:
-    int 0x19
+    mov si, press_key_msg
+    call print_string
+    call wait_key
 
-wait_key:
+    jmp 0x0000:0x1000
+
+error:
+    mov si, msg_error
+    call print_string
     mov ah, 0x00
     int 0x16
-    ret
+    int 0x19
 
 print_string:
     mov ah, 0x0E
@@ -65,7 +66,16 @@ print_string:
 .done:
     ret
 
-kernel_msg db "[KERNEL] Sistema operacional carregado!", 13, 10, 0
-prompt     db 13, 10, "CMD> ", 0
-editor_msg db 13, 10, "Iniciando editor de texto...", 13, 10, 0
-invalid_msg db 13, 10, "Comando inválido! Use 'e' para editor ou 'r' para reiniciar", 13, 10, 0 ; Nova mensagem
+wait_key:
+    mov ah, 0x00
+    int 0x16
+    ret
+
+boot_msg    db "[1] Bootloader OK!", 13, 10, 0
+kernel_msg  db "[2] Kernel carregado!", 13, 10, 0
+editor_msg  db "[3] Editor carregado!", 13, 10, 0
+msg_error   db "Erro de disco!", 0
+press_key_msg db "[!] Pressione qualquer tecla...", 13, 10, 0
+
+times 510-($-$$) db 0
+dw 0xAA55
