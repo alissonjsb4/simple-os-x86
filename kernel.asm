@@ -25,7 +25,7 @@ start:
     call set_cursor
 
     ; Exibe o cabeçalho
-    mov si, header
+    mov si, kernel_msg
     call print_string
 
     ; Mensagem inicial
