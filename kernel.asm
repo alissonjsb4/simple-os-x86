@@ -110,7 +110,7 @@ done_read:
 
     call clear_screen
     mov dh, 0
-    mov dl, 0
+    mov dl, 1
     call set_cursor    
     mov si, reading_msg1
     call print_string
