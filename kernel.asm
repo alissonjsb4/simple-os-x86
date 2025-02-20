@@ -4,8 +4,8 @@
 ;---------------------------------------------------------------------------------------------------
 ; Kernel e seus comandos:
 ; - Exibe uma mensagem inicial ao iniciar.
-; - Aceita comandos do usuário ('e' para editor, 'r' para reiniciar, 'v' para visualizar textos).
-; - Lê e imprime setores do disco.
+; - Aceita comandos do usuário ('e' para editor, 'r' para reiniciar, 'v' para visualizar textos, 'd' para deletar um texto).
+; - Lê e escreve em setores do disco.
 ; - Garante interação básica com o usuário e manipulação de arquivos.
 ;---------------------------------------------------------------------------------------------------
 
@@ -285,6 +285,10 @@ print_loop:
 ; Reiniciar
 ;-------------------------------------------------------
 reboot:
+    call clear_screen
+    mov dh, 0
+    mov dl, 0
+    call set_cursor
     int 0x19        ; Reinicia o sistema
 
 ;-------------------------------------------------------
@@ -496,6 +500,7 @@ kernel_msg:
     db " Comandos disponiveis:",13,10
     db " e - Editor de texto",13,10
     db " v - Visualizar textos",13,10
+    db " d - Deletar texto", 13, 10
     db " r - Reiniciar sistema",13,10
     db "--------------------------", 13, 10,0
 
