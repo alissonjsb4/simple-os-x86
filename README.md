@@ -55,7 +55,8 @@ Esta implementação é ideal para estudantes, pesquisadores e entusiastas que d
 ### Bootloader
 
 - **Localização e Função**:  
-  - O bootloader está armazenado no disco rígido, quando o PC é ligado, a BIOS assume o controle primeiro. Ela      procura um disco de boot (dispositivo de armazenamento que contém um sistema operacional ou pelo menos um 
+  - O bootloader está armazenado no disco rígido, quando o PC é ligado, a BIOS assume o controle primeiro.
+    Ela procura um disco de boot (dispositivo de armazenamento que contém um sistema operacional ou pelo menos um 
     bootloader como HD, SSD, pendrive, etc), ao encontrar ele, a BIOS vai ler o primeiro disco do setor (512 
     bytes), onde reside o bootloader, e vai executar seu código que é o primeiro executado pelo sistema. O   
     bootloader então carrega o sistema operacional na memória RAM  e transfere o controle para ele.
@@ -70,8 +71,8 @@ Esta implementação é ideal para estudantes, pesquisadores e entusiastas que d
 ### Kernel
 
 - **Localização e Função**:
-  - Carregado pelo bootloader no endereço de memória `0x1000`.
-  - Fornece um prompt de comando interativo para o usuário e gerencia a transição entre os modos de operação.
+  - Carregado pelo bootloader no endereço de memória `0x1000`, por padrão.
+  - Fornece um prompt de comando interativo para o usuário e gerencia a transição entre os modos de operação. Ou seja, ele faz a ponte entre os programas e o hardware, gerenciando processador, memória, disco, teclado, arquivos etc.
 - **Responsabilidades e Funções do Kernel**:
   - **Configuração do Ambiente**: Inicializa os segmentos, a pilha e posiciona o cursor na tela.
   - **Interface de Linha de Comando (CLI)**:  
@@ -81,7 +82,7 @@ Esta implementação é ideal para estudantes, pesquisadores e entusiastas que d
       - `r`: Reinicia o sistema.
       - `v`: Visualiza arquivos salvos, permitindo a seleção de um arquivo para exibição completa.
   - **Gerenciamento de Disco**:
-    - Realiza leitura de setores utilizando a interrupção `int 0x13`.
+    - Realiza leitura de setores utilizando a interrupção `int 0x13`. A BIOS fornece esse serviço antes do SO ser carregado.
     - Gerencia um contador de arquivos para facilitar a navegação e visualização dos dados salvos.
 - **Operações de Disco**:
   - Lê setores específicos para carregar o editor e recuperar os arquivos salvos.
@@ -90,8 +91,8 @@ Esta implementação é ideal para estudantes, pesquisadores e entusiastas que d
 ### Editor de Texto
 
 - **Localização e Função**:
-  - Carregado no endereço de memória `0x2000`.
-  - Permite a entrada e edição de textos, possibilitando salvar os arquivos editados.
+  - Carregado no endereço de memória `0x2000`, por padrão.
+  - Permite a entrada e edição de textos, diretamente dentro do sistema operacional, possibilitando salvar os arquivos editados.
 - **Funcionalidades**:
   - Suporte a backspace, nova linha (Enter) e salvamento de conteúdo (Ctrl+S).
   - Exibição de um cabeçalho com instruções de uso.
@@ -134,12 +135,20 @@ Esta implementação é ideal para estudantes, pesquisadores e entusiastas que d
 
 ---
 
+
 ## Requisitos
 
 - **NASM**: Utilizado para compilar os arquivos Assembly.
 - **Bash**: Necessário para executar o script de build.
-- **dd**: Utilitário para a criação e manipulação da imagem de disco (disponível em sistemas Unix-like).
+  - No Linux/Mac, já está incluído no sistema.
+  - No Windows, pode ser instalado via **MSYS2**.
+- **MSYS2 MINGW64 (para Windows)**: Necessário para rodar os comandos corretamente.
+  - No MSYS2, deve-se abrir o terminal **MINGW64** para compilar e rodar os comandos.
+- **dd**: Utilitário para criar e manipular a imagem de disco.
+  - No Linux/Mac, já está incluído no sistema.
+  - No Windows, pode ser instalado via **MSYS2** (`pacman -S coreutils`).
 - **QEMU**: Emulador de hardware, como o `qemu-system-x86_64`, para testar e emular o Simple OS.
+
 
 ---
 
