@@ -9,6 +9,7 @@
 ; - Garante interação básica com o usuário e manipulação de arquivos.
 ;---------------------------------------------------------------------------------------------------
 
+%define OLD_DATA_ADDR 0x3000
 
 start:
     ; Configura segmentos e pilha
@@ -43,6 +44,8 @@ main_loop:
     je reboot
     cmp al, 'v'
     je view_text
+    cmp al, 'd'
+    je delete_text
 
     ; Comando inválido
     mov si, invalid_msg
@@ -67,15 +70,9 @@ view_text:
     call set_cursor
 
     ; 1) Ler o setor 9 (que contém o file_count) para o buffer file_count_buffer
-    mov ah, 0x02          ; Função: Ler setores
-    mov al, 1             ; Ler 1 setor
-    mov ch, 0
     mov cl, 9             ; Setor 9
-    mov dh, 0
-    mov dl, 0x80          ; Drive primário
     mov bx, file_count_buffer
-    int 0x13
-    jc disk_error
+    call sector_read
 
     ; 2) Extrair o contador do primeiro byte do buffer
     mov al, [file_count_buffer]  ; Supõe que o contador está no primeiro byte
@@ -89,52 +86,7 @@ view_text:
     xor di, di            ; DI = 0 (índice do arquivo, 0-based)
     mov bl, 10            ; Primeiro setor de arquivo é 10
 
-read_loop:
-    cmp di, [file_count]
-    jae done_read         ; Se DI >= file_count, encerra
-
-    ; Imprime a linha no formato: "[NN] "
-    mov si, open_bracket
-    call print_string
-
-    mov ax, di
-    inc ax               ; N = DI+1
-    and ax, 0x00FF       ; Garante que o Valor esteja em 8 bits
-    call print_two_digit
-
-    mov si, close_bracket_space
-    call print_string
-
-    ; 0) Limpa o buffer da memória RAM que será usado para carregar o texto
-    call clear_buffer
-
-    ; 4) Ler o setor (número em BL) para o buffer temporário em 0x3000
-    mov ah, 0x02         ; Função: Ler setores
-    mov al, 1            ; Ler 1 setor
-    mov ch, 0
-    mov cl, [sector_number]         ; Setor a ser lido (assume BL < 256)
-    mov dh, 0
-    mov dl, 0x80
-    mov bx, 0x3000       ; Buffer temporário para o arquivo
-    int 0x13
-    jc disk_error
-
-    ; 5) Imprimir os 10 primeiros bytes do arquivo
-    mov cx, 10            ; Quantidade de bytes a imprimir
-    mov si, 0x3000       ; Início do buffer
-print_ten:
-    lodsb
-    mov ah, 0x0E
-    int 0x10
-    loop print_ten
-
-    ; Imprime nova linha
-    mov si, newline_msg
-    call print_string
-
-    inc byte [sector_number]               ; Próximo setor (arquivo seguinte)
-    inc di                                 ; Incrementa índice do arquivo
-    jmp read_loop
+    call read_loop
 
 done_read:
     call clear_buffer               ; Limpa o buffer, higiene, né?
@@ -164,19 +116,103 @@ done_read:
 
     jmp main_loop
 
-invalid_sector:
-    mov si, invalid_sector_msg
-    call print_string
-    jmp done_read
-
-retorno_main:
+;-------------------------------------------------------
+; Comando 'd' - Deletar arquivo salvo
+;-------------------------------------------------------
+delete_text:
     call clear_screen
     mov dh, 0
     mov dl, 0
     call set_cursor
-    mov si, kernel_msg
+
+    ; 1) Ler o setor 9 (que contém o file_count) para o buffer file_count_buffer
+    mov cl, 9             ; Setor 9
+    mov bx, file_count_buffer
+    call sector_read
+
+    ; 2) Extrair o contador do primeiro byte do buffer
+    mov al, [file_count_buffer]  ; Supõe que o contador está no primeiro byte
+    mov [file_count], ax         ; Armazena em file_count (word)
+    mov al, [file_count]
+    add al, '0'
+    call print_char
+
+    ; Exibe um cabeçalho
+    mov si, view_header
     call print_string
+
+    ; 3) Loop para ler e imprimir cada arquivo
+    xor di, di            ; DI = 0 (índice do arquivo, 0-based)
+    mov bl, 10            ; Primeiro setor de arquivo é 10
+    
+    call delete_loop
+
+delete_ready:
+    call clear_buffer               ; Limpa o buffer, higiene, né?
+    cmp byte [sector_number], 10    ; Verifica se existem ou não arquivos salvos.
+    je main_loop                    ; Se não, volta ao loop.
+
+    mov al, 10                      ; Já vimos que existem arquivos, vamos então
+    mov [sector_number], al         ; limpar o contador para a próxima execução
+
+    mov si, delete_msg                ; Se sim, vai pedir para você escolher qual quer deletar
+    call print_string
+    call read_two_digits            ; Vai permitir que você digite o valor 
+
+    cmp bl, 0 
+    je  retorno_main
+    mov ax, di
+    cmp al, bl                      ; O valor supera o número de arquivos salvos?
+    jl  invalid_sector
+    cmp bl, 1                       ; O valor é menor que 01?
+    jl  invalid_sector
+
+    call write_swap_and_clear
+
+    ; Decrementa o contador de arquivos
+    dec word [file_count]
+    mov cl, 9
+    mov bx, OLD_DATA_ADDR
+    mov al, [file_count]
+    mov [OLD_DATA_ADDR], al
+    call sector_write       ; Chama a rotina de escrita do setor (ES:BX = 0000:3000)
+
     jmp main_loop
+
+;-------------------------------------------------------
+; Rotina para substituir um setor do disco pelo último
+;-------------------------------------------------------
+write_swap_and_clear:
+    
+    mov [sector_number], bl
+
+    ; Passo 1: Escreve zeros no setor (NúmeroDigitado + 9)
+    mov cl, 9             
+    add cl, [sector_number]; CL = setor (NúmeroDigitado + 9)
+    mov bx, 0x3000         ; Buffer temporário
+    call fill_with_zero    ; Preenche 0x3000 com 512 zeros
+    call sector_write      ; Escreve o setor com zeros
+
+    ; Passo 2: Lê o último setor para o buffer 0x3000
+    mov cl, [file_count]  
+    add cl, 9
+    mov bx, 0x3000
+    call sector_read       ; Lê o setor para 0x3000
+
+    ; Passo 3: Escreve o conteúdo lido no setor (NúmeroDigitado + 9)
+    mov cl, 9
+    add cl, [sector_number]; CL = setor (NúmeroDigitado + 9)
+    call sector_write      ; Escreve o conteúdo do buffer
+
+    ; Passo 4: Escreve zeros no setor (DI + 10)
+    call fill_with_zero    ; Preenche 0x3000 com zeros novamente
+    mov cl, 9
+    mov al, [file_count]
+    mov [OLD_DATA_ADDR], al
+    mov bx, OLD_DATA_ADDR
+    call sector_write      ; Sobrescreve com zeros
+
+    ret                    
 
 ;-------------------------------------------------------
 ; Rotina para printar um número de 2 dígitos decimais (menores que 10 são printados com um '0' na frente)
@@ -216,15 +252,10 @@ read_and_print_sector:
     push es
 
     ; Lê o setor
-    mov ah, 0x02         ; Função: Ler setores do disco
-    mov al, 1            ; Número de setores a ler (1 setor)
-    mov cl, 9            ; "Inicialiaza" a busca pelo setor certo no setor 9
+    mov cl, 9            ; "Inicializa" a busca pelo setor certo no setor 9
     add cl, bl           ; Busca o setor selecionado pelo usuário (9 + bl)
-    mov dh, 0
-    mov dl, 0x80
     mov bx, 0x3000       ; Buffer temporário para o arquivo
-    int 0x13
-    jc disk_error
+    call sector_read
 
     ; Imprimir o conteúdo do setor
     mov cx, 512          ; O setor tem 512 bytes
@@ -331,6 +362,132 @@ clear_loop:
     loop clear_loop         ; Repete até limpar todos os bytes
     ret
 
+invalid_sector:
+    mov si, invalid_sector_msg
+    call print_string
+    jmp done_read
+
+retorno_main:
+    call clear_screen
+    mov dh, 0
+    mov dl, 0
+    call set_cursor
+    mov si, kernel_msg
+    call print_string
+    jmp main_loop
+
+sector_read:
+    mov ah, 0x02         ; Função: Ler setores do disco
+    mov al, 1            ; Número de setores a ler (1 setor)
+    mov ch, 0
+    mov dh, 0
+    mov dl, 0x80
+    int 0x13
+    jc disk_error
+    ret
+
+sector_write:
+    mov ah, 0x03       ; Função de escrita de setor
+    mov al, 1          ; Número de setores a escrever (1)
+    mov ch, 0          
+    mov dh, 0          
+    mov dl, 0x80          
+    int 0x13              ; Chama a interrupção de disco
+    jc disk_error
+    ret
+
+fill_with_zero:
+    push ax
+    push cx
+    push di
+    push es
+    mov ax, 0x0000         ; Segmento 0x0000
+    mov es, ax
+    mov di, 0x3000         ; Offset 0x3000 (ES:DI = 0000:3000)
+    mov cx, 512            ; 512 bytes
+    xor al, al             ; AL = 0
+    rep stosb              ; Preenche com zeros
+    pop es
+    pop di
+    pop cx
+    pop ax
+    ret
+
+read_loop:
+    cmp di, [file_count]
+    jae done_read         ; Se DI >= file_count, encerra
+
+    ; Imprime a linha no formato: "[NN] "
+    mov si, open_bracket
+    call print_string
+
+    mov ax, di
+    inc ax               ; N = DI+1
+    and ax, 0x00FF       ; Garante que o Valor esteja em 8 bits
+    call print_two_digit
+
+    mov si, close_bracket_space
+    call print_string
+
+    ; 0) Limpa o buffer da memória RAM que será usado para carregar o texto
+    call clear_buffer
+
+    ; 4) Ler o setor (número em BL) para o buffer temporário em 0x3000
+    mov cl, [sector_number]
+    mov bx, 0x3000
+    call sector_read
+
+    ; 5) Imprimir os 10 primeiros bytes do arquivo
+    mov cx, 10            ; Quantidade de bytes a imprimir
+    mov si, 0x3000       ; Início do buffer
+
+    call print_ten
+    jmp read_loop
+
+delete_loop:
+    cmp di, [file_count]
+    jae delete_ready         ; Se DI >= file_count, encerra
+
+    ; Imprime a linha no formato: "[NN] "
+    mov si, open_bracket
+    call print_string
+
+    mov ax, di
+    inc ax               ; N = DI+1
+    and ax, 0x00FF       ; Garante que o Valor esteja em 8 bits
+    call print_two_digit
+
+    mov si, close_bracket_space
+    call print_string
+
+    ; 0) Limpa o buffer da memória RAM que será usado para carregar o texto
+    call clear_buffer
+
+    ; 4) Ler o setor (número em BL) para o buffer temporário em 0x3000
+    mov cl, [sector_number]
+    mov bx, 0x3000
+    call sector_read
+
+    ; 5) Imprimir os 10 primeiros bytes do arquivo
+    mov cx, 10            ; Quantidade de bytes a imprimir
+    mov si, 0x3000       ; Início do buffer
+
+    call print_ten
+    jmp delete_loop
+
+print_ten:
+    lodsb
+    mov ah, 0x0E
+    int 0x10
+    loop print_ten
+
+    ; Imprime nova linha
+    mov si, newline_msg
+    call print_string
+
+    inc byte [sector_number]               ; Próximo setor (arquivo seguinte)
+    inc di                                 ; Incrementa índice do arquivo
+    ret
 ;-------------------------------------------------------
 ; Dados do Kernel
 ;-------------------------------------------------------
@@ -359,6 +516,9 @@ view_header:
 
 view_msg:
     db "Valor do arq. que queres abrir ('00' para retornar):", 0
+
+delete_msg:
+    db "Valor do arq. que queres deletar ('00' para retornar):", 0
 
 invalid_sector_msg:
     db "Arquivo nao existente!", 13, 10, 0
