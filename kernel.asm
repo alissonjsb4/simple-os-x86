@@ -1,6 +1,15 @@
 [BITS 16]
 [ORG 0x1000]
 
+;---------------------------------------------------------------------------------------------------
+; Kernel e seus comandos:
+; - Exibe uma mensagem inicial ao iniciar.
+; - Aceita comandos do usuário ('e' para editor, 'r' para reiniciar, 'v' para visualizar textos).
+; - Lê e imprime setores do disco.
+; - Garante interação básica com o usuário e manipulação de arquivos.
+;---------------------------------------------------------------------------------------------------
+
+
 start:
     ; Configura segmentos e pilha
     xor ax, ax
@@ -325,22 +334,53 @@ clear_loop:
 ;-------------------------------------------------------
 ; Dados do Kernel
 ;-------------------------------------------------------
-kernel_msg     db "Kernel iniciado!", 13,10,0
-prompt         db "CMD> ", 0
-editor_msg     db "Iniciando editor...", 13,10,0
-invalid_msg    db "Comando invalido!", 13,10,0
-disk_error_msg db "Erro de leitura do disco!", 13,10,0
+kernel_msg:
+    db "========= KERNEL =========",13,10
+    db " Comandos disponiveis:",13,10
+    db " e - Editor de texto",13,10
+    db " v - Visualizar textos",13,10
+    db " r - Reiniciar sistema",13,10
+    db "--------------------------", 13, 10,0
 
-view_header         db "Arquivos salvos:", 13,10,0
-view_msg            db "Valor do arq. que queres abrir ('00' para retornar):", 0
-invalid_sector_msg  db "Arquivo nao existente!", 13, 10, 0
-open_bracket        db "[",0
-close_bracket_space db "] ",0
-newline_msg         db 13,10,0
+prompt:
+    db  13, 10, "CMD> ", 0
 
-file_count     dw 0              ; Variável para armazenar o contador de arquivos
-sector_number db 10              ; Variável para armazenar o setor analisado atualmente
+editor_msg:
+    db "Iniciando editor...", 13,10,0
+
+invalid_msg:
+    db "Comando invalido!", 13,10,0
+
+disk_error_msg:
+    db "Erro de leitura do disco!", 13,10,0
+
+view_header:
+    db "Arquivos salvos:", 13,10,0
+
+view_msg:
+    db "Valor do arq. que queres abrir ('00' para retornar):", 0
+
+invalid_sector_msg:
+    db "Arquivo nao existente!", 13, 10, 0
+
+open_bracket:
+    db "[",0
+
+close_bracket_space:
+    db "] ",0
+
+newline_msg:
+    db 13,10,0
+
+file_count:
+    dw 0              ; Variável para armazenar o contador de arquivos
+
+sector_number:
+    db 10             ; Variável para armazenar o setor analisado atualmente
+
 ; Buffer para ler o setor que contém o file_count (setor 9)
-file_count_buffer  times 512 db 0
+file_count_buffer:
+    times 512 db 0
+
 ; Preenche até 2048 bytes (4 setores)
 times 2048-($-$$) db 0
