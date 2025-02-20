@@ -346,9 +346,6 @@ header:
     db " r - Reiniciar sistema",13,10
     db "--------------------------",0
 
-kernel_msg:
-    db 13,10,"Kernel iniciado!",13,10,0
-
 prompt:
     db "CMD> ", 0
 
