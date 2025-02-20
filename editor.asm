@@ -1,4 +1,4 @@
- [BITS 16]
+[BITS 16]
 [ORG 0x2000]
 
 ;-----------------------------------------------------------
@@ -191,7 +191,7 @@ append_done:
     mov bx, OLD_DATA_ADDR
     mov al, [file_counter]       ; Carrega o valor de file_counter em AL
     mov [OLD_DATA_ADDR], al      ; Salva o valor de AL em OLD_DATA_ADDR
-    mov al, 1         ; 1 setor
+    mov al, 1                    ; 1 setor
     int 0x13
     jc save_error
 
