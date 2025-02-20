@@ -24,6 +24,10 @@ start:
     mov dl, 0
     call set_cursor
 
+    ; Exibe o cabeçalho
+    mov si, header
+    call print_string
+
     ; Mensagem inicial
     mov si, kernel_msg
     call print_string
