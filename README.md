@@ -81,6 +81,7 @@ Esta implementação é ideal para estudantes, pesquisadores e entusiastas que d
       - `e`: Inicia o editor de texto.
       - `r`: Reinicia o sistema.
       - `v`: Visualiza arquivos salvos, permitindo a seleção de um arquivo para exibição completa.
+      - `d`: Deleta arquivos.
   - **Gerenciamento de Disco**:
     - Realiza leitura de setores utilizando a interrupção `int 0x13`. A BIOS fornece esse serviço antes do SO ser carregado.
     - Gerencia um contador de arquivos para facilitar a navegação e visualização dos dados salvos.
@@ -203,6 +204,9 @@ Esta instrução iniciará a emulação, permitindo que você teste e interaja c
 
 ### Tratamento de Erros
 - O tratamento atual de erros é básico. Futuras versões poderão incluir mecanismos mais robustos para lidar com falhas de leitura e escrita no disco, bem como notificações mais detalhadas ao usuário.
+
+### Bugs
+- Existe um bug ao acessar o visualizador de arquivos ou o deletador de arquivos pela primeira vez após deletar um arquivo. Porém após essa primeira vez, tudo funciona normalmente. O bug é somente de natureza visual e não atrapalha o fluxo do nosso programa.
 
 ### Funcionalidades do Editor
 - **Edição Avançada**: Implementar navegação entre linhas, suporte à edição de múltiplas linhas e funcionalidades de corte/colagem.
