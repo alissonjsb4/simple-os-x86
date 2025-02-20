@@ -1,6 +1,15 @@
 [BITS 16]
 [ORG 0x1000]
 
+;-----------------------------------------------------------
+; Kernel e seus comandos:
+; - Exibe uma mensagem inicial ao iniciar.
+; - Aceita comandos do usuário ('e' para editor, 'r' para reiniciar, 'v' para visualizar textos).
+; - Lê e imprime setores do disco.
+; - Garante interação básica com o usuário e manipulação de arquivos.
+;-----------------------------------------------------------
+
+
 start:
     ; Configura segmentos e pilha
     xor ax, ax
