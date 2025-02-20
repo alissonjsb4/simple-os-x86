@@ -16,7 +16,7 @@ O objetivo do **Simple OS** é demonstrar os conceitos fundamentais de um sistem
 
 - **Bootloader**: Responsável pela inicialização do sistema.
 - **Kernel**: Fornece um prompt de comando interativo.
-- **Editor de Texto**: Permite a criação, edição e salvamento de arquivos.
+- **Editor de Texto**: Permite a criação, escrita e salvamento de arquivos de texto.
 
 O projeto ilustra a interação direta com o hardware por meio das **interrupções do BIOS**, servindo como uma ferramenta educacional para o estudo de sistemas operacionais e programação de baixo nível.
 
@@ -44,7 +44,7 @@ O projeto **Simple OS** tem como objetivo demonstrar o funcionamento básico de 
 
 - Inicializar o sistema por meio de um bootloader.
 - Executar um kernel que fornece um prompt de comando interativo.
-- Utilizar um editor de texto simples para criar, editar e salvar arquivos diretamente no disco, usando operações de leitura e escrita via BIOS.
+- Utilizar um editor de texto simples para criar, escrever e salvar arquivos de texto diretamente no disco, usando operações de leitura e escrita via BIOS.
 
 Esta implementação é ideal para estudantes, pesquisadores e entusiastas que desejam compreender os conceitos de boot, carregamento de kernel e operações de baixo nível em um ambiente de 16 bits.
 
@@ -86,7 +86,7 @@ Esta implementação é ideal para estudantes, pesquisadores e entusiastas que d
     - Gerencia um contador de arquivos para facilitar a navegação e visualização dos dados salvos.
 - **Operações de Disco**:
   - Lê setores específicos para carregar o editor e recuperar os arquivos salvos.
-  - Atualiza o contador de arquivos, armazenado em um setor reservado.
+  - Lê o contador e trabalha em cima dele.
 
 ### Editor de Texto
 
