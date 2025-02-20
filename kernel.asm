@@ -33,9 +33,6 @@ start:
     call print_string
 
 main_loop:
-    ; Exibe prompt
-    mov si, prompt
-    call print_string
 
     ; Espera tecla
     call wait_key
