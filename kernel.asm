@@ -112,6 +112,15 @@ done_read:
     mov dh, 0
     mov dl, 0
     call set_cursor    
+    mov si, reading_msg1
+    call print_string
+    mov ax, bx
+    call print_two_digit
+    mov si, reading_msg2
+    call print_string
+    mov dh, 2
+    mov dl, 1
+    call set_cursor
     call read_and_print_sector
 
     jmp main_loop
@@ -521,6 +530,11 @@ view_header:
 
 view_msg:
     db "Valor do arq. que queres abrir ('00' para retornar):", 0
+
+reading_msg1:
+    db "Conteudo do arquivo ", 0
+reading_msg2:
+    db " (clique qualquer tecla para sair):", 13, 10, 0 
 
 delete_msg:
     db "Valor do arq. que queres deletar ('00' para retornar):", 0
