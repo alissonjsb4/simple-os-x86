@@ -28,9 +28,6 @@ start:
     mov si, kernel_msg
     call print_string
 
-    ; Mensagem inicial
-    mov si, kernel_msg
-    call print_string
 
 main_loop:
 
