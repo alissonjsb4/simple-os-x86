@@ -338,7 +338,7 @@ clear_loop:
 ;-------------------------------------------------------
 ; Dados do Kernel
 ;-------------------------------------------------------
-header:
+kernel_msg:
     db "========= KERNEL =========",13,10
     db " Comandos disponiveis:",13,10
     db " e - Editor de texto",13,10
