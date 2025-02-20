@@ -92,7 +92,7 @@ Esta implementação é ideal para estudantes, pesquisadores e entusiastas que d
 
 - **Localização e Função**:
   - Carregado no endereço de memória `0x2000`, por padrão.
-  - Permite a entrada e edição de textos, diretamente dentro do sistema operacional, possibilitando salvar os arquivos editados.
+  - Permite a entrada de textos, diretamente dentro do sistema operacional, possibilitando salvar os textos criados.
 - **Funcionalidades**:
   - Suporte a backspace, nova linha (Enter) e salvamento de conteúdo (Ctrl+S).
   - Exibição de um cabeçalho com instruções de uso.
