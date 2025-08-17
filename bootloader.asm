@@ -1,92 +1,134 @@
-[BITS 16]       ; informa ao assembler que o código é para o modo real
-[ORG 0x7C00]    ; código vai ser carregado nesse endereço por padrão (BIOS carrega o primeiro setor aqui)
+; ======================================================================================
+; Simple OS - 16-bit MBR Bootloader
+;
+; Author: Alisson Jaime Sales Barros
+; Course: Microprocessors - Federal University of Ceará (UFC)
+;
+; Description:
+; This is a 512-byte Master Boot Record (MBR) bootloader. Its primary jobs are:
+; 1. Set up the CPU's segment registers and stack in 16-bit real mode.
+; 2. Use BIOS interrupts to load the Kernel and Editor from the disk into memory.
+; 3. Transfer execution control to the Kernel.
+;
+; ======================================================================================
 
+[BITS 16]      ; Tell the assembler we are in 16-bit real mode
+[ORG 0x7C00]   ; The BIOS loads the MBR to this memory address
+
+; --- Constants Definition ---
+KERNEL_LOAD_ADDR    EQU 0x1000  ; Memory address to load the kernel
+EDITOR_LOAD_ADDR    EQU 0x2000  ; Memory address to load the editor
+BOOT_DRIVE          EQU 0x80    ; Drive number for the primary hard disk
+
+; --- Start of Execution ---
 start:
-    cli         ; desativa as interrupções
-    cld         ; limpador de flag de direção
-    xor ax, ax  ; pro AX ser zero
+    ; 1. Initial CPU Setup
+    cli             ; Disable interrupts during setup
+    cld             ; Clear direction flag (for string operations)
+    xor ax, ax      ; Clear AX register (AX=0)
 
-    ;Definição dos segmentos de memória como zero
-    mov ds, ax  
+    ; Set up segment registers to a known state (0x0000)
+    mov ds, ax
     mov es, ax
     mov ss, ax
-  
-    mov sp, 0x7C00 ; define a pilha do mesmo local do bootloader
+    
+    ; Set up the stack pointer to grow downwards from our code's origin
+    mov sp, 0x7C00
+    sti             ; Re-enable interrupts now that setup is complete
 
-    ;Exibe mensagem inicial
-    mov si, boot_msg  
-    call print_string
+    ; 2. Print Bootloader Welcome Message
+    mov si, msg_boot_ok
+    call print_string_routine
 
-    ; Carregar kernel (LBA 3-6, CHS: C=0,H=0,S=3)
-    mov bx, 0x1000 ; destino nesse endereço de memória
-    mov ah, 0x02   ; função de leitura
-    mov al, 4      ; número de setores a ler, vai ser o 3, 4, 5 e 6
-    mov ch, 0      ; cilindro = 0
-    mov cl, 3      ; começa no setor = 3
-    mov dh, 0      ; cabeça = 0
-    mov dl, 0x80   ; indica o disco rígido principal
-    int 0x13       ; interrupção pra ler o disco
-    jc error       ; se houver erro, pula pra error
-    cmp al, 4      ; confirma se os 4 setores foram lidos 
-    jne error      ; se não foram lidos corretamente, pula pra error
+    ; 3. Load Kernel from Disk
+    ;    Loads 4 sectors starting from sector 3 into memory at KERNEL_LOAD_ADDR
+load_kernel:
+    mov bx, KERNEL_LOAD_ADDR    ; Set destination memory address
+    mov ah, 0x02                ; BIOS Function: Read Sectors
+    mov al, 4                   ; Number of sectors to read
+    mov ch, 0                   ; Cylinder index
+    mov cl, 3                   ; Starting sector number
+    mov dh, 0                   ; Head index
+    mov dl, BOOT_DRIVE          ; Drive to read from
+    int 0x13                    ; Call BIOS disk services interrupt
 
-    ;Exibe mensagem
-    mov si, kernel_msg
-    call print_string
+    jc disk_error               ; If Carry Flag is set, a disk error occurred
+    cmp al, 4                   ; Compare sectors read with sectors requested
+    jne disk_error              ; If not equal, an error occurred
 
-    ; Carregar editor (LBA 7-9, CHS: C=0,H=0,S=7)
-    mov bx, 0x2000 ; o destino
-    mov ah, 0x02   ; ler do disco
-    mov al, 3      ; ler 3 setores
-    mov cl, 7      ; começa no 7º setor
-    int 0x13       ; leitura do disco
-    jc error       ; verifica erro
-    cmp al, 3      ; confirma se foram lidos corretamente
-    jne error      ; se não foram, pula pra error
+    mov si, msg_kernel_ok
+    call print_string_routine
 
-    ; Exibe mensagem
-    mov si, editor_msg
-    call print_string
+    ; 4. Load Editor from Disk
+    ;    Loads 3 sectors starting from sector 7 into memory at EDITOR_LOAD_ADDR
+load_editor:
+    mov bx, EDITOR_LOAD_ADDR    ; Set destination memory address
+    mov ah, 0x02                ; BIOS Function: Read Sectors
+    mov al, 3                   ; Number of sectors to read
+    mov cl, 7                   ; Starting sector number
+    int 0x13                    ; Call BIOS disk services interrupt
+    
+    jc disk_error
+    cmp al, 3
+    jne disk_error
 
-    ; Aguarda tecla antes de executar kernel e mostra a mensagem pra pressionar qualquer tecla
-    mov si, press_key_msg
-    call print_string 
-    call wait_key
+    mov si, msg_editor_ok
+    call print_string_routine
 
-    jmp 0x0000:0x1000 ; salto para onde o kernel foi carregado, dando controle ao kernel
+    ; 5. Wait for user input before jumping to the kernel
+    mov si, msg_press_key
+    call print_string_routine
+    call wait_for_key_routine
 
-error:
-    mov si, msg_error ; este bloco todo vai ser uma rotina de erro
-    call print_string
-    mov ah, 0x00      ; função da bios que espera uma recla ser pressionada, 
-    int 0x16          ; espera uma tecla ser pressionada e guarda o código da tecla (scan e ascii, em AH e AL)
-    int 0x19          ; interrupção pra reiniciar o sistema
+    ; 6. Transfer control to the Kernel
+    jmp 0x0000:KERNEL_LOAD_ADDR ; Far jump to the kernel's code segment and address
 
-; Rotina pra imprimir as strings
-print_string:
-    mov ah, 0x0E      ; modo de saída de texto da BIOS
-.print_loop:
-    lodsb             ; lê um byte da string apontada por SI
-    test al, al       ; se AL for zero, chegou no fim da string e sai do loop
-    jz .done
-    int 0x10          ; imprime o caractere armazenado
-    jmp .print_loop
+; --- Error Handling Routine ---
+disk_error:
+    mov si, msg_disk_error
+    call print_string_routine
+    
+    ; Wait for a keypress before rebooting
+    mov ah, 0x00
+    int 0x16
+    
+    ; Reboot the system
+    int 0x19
+
+; ======================================================================================
+; Subroutines
+; ======================================================================================
+
+; Prints a null-terminated string to the screen.
+; Input: SI = Address of the string
+print_string_routine:
+    mov ah, 0x0E        ; BIOS Function: Teletype Output
+.loop:
+    lodsb               ; Load byte from [DS:SI] into AL, and increment SI
+    test al, al         ; Check if the byte is zero (null terminator)
+    jz .done            ; If zero, we are done
+    int 0x10            ; Call BIOS video services interrupt to print character
+    jmp .loop
 .done:
     ret
 
-; Rotina que espera a tecla, retorna quando é pressionada
-wait_key:
-    mov ah, 0x00
-    int 0x16
-    ret               ; retorna ao endereço de quem chamou a rotina
+; Waits for a single keypress.
+wait_for_key_routine:
+    mov ah, 0x00        ; BIOS Function: Get Keystroke
+    int 0x16            ; Call BIOS keyboard services interrupt
+    ret
 
-; Mensagens de texto que são utilizadas 
-boot_msg    db "[1] Bootloader OK!", 13, 10, 0
-kernel_msg  db "[2] Kernel carregado!", 13, 10, 0
-editor_msg  db "[3] Editor carregado!", 13, 10, 0
-msg_error   db "Erro de disco!", 0
-press_key_msg db "[!] Pressione qualquer tecla...", 13, 10, 0
+; ======================================================================================
+; Data Section
+; ======================================================================================
+msg_boot_ok     db "[OK] Bootloader initialized successfully.", 13, 10, 0
+msg_kernel_ok   db "[OK] Kernel loaded into memory.", 13, 10, 0
+msg_editor_ok   db "[OK] Editor loaded into memory.", 13, 10, 0
+msg_disk_error  db "[ERROR] Disk read failure. Rebooting...", 0
+msg_press_key   db "Press any key to boot the kernel...", 13, 10, 0
 
-; Finalização (preenche os espaços restantes com 0, deixando os últimos 2 bytes com AA55, indicador de que este é o bootloader)
-times 510-($-$$) db 0
-dw 0xAA55
+; ======================================================================================
+; MBR Signature
+; ======================================================================================
+times 510-($-$$) db 0   ; Pad the rest of the 512-byte sector with zeros
+dw 0xAA55               ; The mandatory MBR boot signature
