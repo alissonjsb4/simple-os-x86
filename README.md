@@ -1,50 +1,37 @@
 # simple-os-x86
 
-Sistema operacional de 16 bits para x86 em modo real, escrito em Assembly:
-bootloader MBR de 512 bytes, kernel com prompt de comandos e editor de texto que
-grava em disco. Projeto da disciplina de Microprocessadores (UFC), em equipe de
-sete.
+A 16-bit operating system for x86 in real mode, written in Assembly: a 512-byte MBR bootloader, a kernel with a command prompt, and a text editor that saves to disk. Course project for Microprocessors at the Federal University of Ceará (UFC), team of seven.
 
-## Uso
+## Usage
 
     ./build.sh
     qemu-system-x86_64 -drive format=raw,file=disk.img
 
-Requer NASM, QEMU e coreutils. O `build.sh` monta os três componentes, valida o
-tamanho de cada um e gera a imagem de disco bootável.
+Needs NASM, QEMU and coreutils. `build.sh` assembles the three parts, checks that each one fits its sectors and writes the bootable disk image.
 
-## Funcionamento
+## How it works
 
-A BIOS carrega o setor 0 em `0x7C00`; o bootloader configura segmentos e pilha e
-lê kernel e editor do disco (`int 0x13`). O kernel, em `0x1000`, oferece prompt
-para abrir o editor, listar e apagar arquivos e reiniciar. O editor, em `0x2000`,
-edita um buffer com suporte a backspace e quebra de linha e o grava em setores
-fixos. Vídeo, disco, teclado e reboot via `int 0x10/0x13/0x16/0x19`.
+The BIOS loads sector 0 at `0x7C00`; the bootloader sets up segments and stack and reads the kernel and the editor from disk with `int 0x13`. The kernel, at `0x1000`, offers a prompt to open the editor, list and delete files, and reboot. The editor, at `0x2000`, edits a buffer with backspace and line breaks and writes it to fixed sectors. Video, disk, keyboard and reboot go through `int 0x10`, `0x13`, `0x16` and `0x19`.
 
-| Setores | Conteúdo | Endereço de carga |
+| Sectors | Contents | Load address |
 |---|---|---|
 | 0 | bootloader (512 B) | `0x7C00` |
-| 3–6 | kernel (2 KB) | `0x1000` |
-| 7–9 | editor (1,5 KB) | `0x2000` |
-| 10+ | arquivos do usuário (512 B cada) | buffer em `0x3000` |
+| 3-6 | kernel (2 KB) | `0x1000` |
+| 7-9 | editor (1.5 KB) | `0x2000` |
+| 10+ | user files (512 B each) | buffer at `0x3000` |
 
-## Notas
+## Notes
 
-- Não há sistema de arquivos: cada arquivo é um setor cru de 512 B em posição
-  fixa — FAT12 seria o próximo passo natural.
-- Tudo roda em modo real sobre serviços de BIOS; não há IDT própria nem modo
-  protegido.
+- There is no file system: each file is a raw 512-byte sector at a fixed position. FAT12 would be the natural next step.
+- Everything runs in real mode on BIOS services, with no IDT of its own and no protected mode.
 
-## Estrutura
+## Layout
 
-    bootloader.asm   MBR: carga do kernel e do editor
-    kernel.asm       prompt e comandos
-    editor.asm       editor de texto com gravação em disco
-    build.sh         montagem, validação de tamanhos e imagem final
+    bootloader.asm   MBR: loads the kernel and the editor
+    kernel.asm       prompt and commands
+    editor.asm       text editor with disk writes
+    build.sh         assembly, size checks and final image
 
-## Autores
+## Authors
 
-Alisson Jaime Sales Barros, Danilo Bezerra Vieira, Francisco Vinicius Castro
-Silveira, José Ferreira Lessa, Matheus Rocha Gomes da Silva, Nataniel Marques
-Viana Neto e Thiago Siqueira de Sousa. Orientação: Prof. Nícolas de Araújo
-Moreira.
+Alisson Jaime Sales Barros, Danilo Bezerra Vieira, Francisco Vinicius Castro Silveira, José Ferreira Lessa, Matheus Rocha Gomes da Silva, Nataniel Marques Viana Neto and Thiago Siqueira de Sousa. Supervised by Prof. Nícolas de Araújo Moreira.
